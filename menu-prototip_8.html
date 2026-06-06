@@ -324,6 +324,7 @@
   .toast .t-av{width:38px;height:38px;border-radius:11px;background:#7360f2;color:#fff;display:flex;
     align-items:center;justify-content:center;font-size:18px;line-height:1;flex:0 0 auto;font-weight:700}
   .toast.sms .t-av{background:#2e9e5b}
+  .toast.cart .t-av{background:var(--olive);font-size:20px}
   .toast .t-tx{font-size:12.5px;line-height:1.4;color:var(--ink)}
   .toast .t-tx b{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
   .confirm-top{font-family:'Unbounded',sans-serif;font-weight:600;font-size:15px;color:var(--muted);margin-bottom:22px;letter-spacing:.02em}
@@ -710,6 +711,20 @@ function addToCart(){const it=state.modalItem;const unit=lineUnit(it,state.modal
   state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
     sel:JSON.parse(JSON.stringify(state.modalSel)),summary:selSummary(it,state.modalSel),
     note:state.modalNote.trim(),qty:state.modalQty,unit,lineTotal:unit*state.modalQty});closeSheet();}
+// Бързо добавяне за продукти без опции (напр. напитки) — без отваряне на екрана за избор.
+function quickAdd(it){
+  const unit=lineUnit(it,{});
+  const ex=state.cart.find(l=>l.itemId===it.id&&(!l.summary||!l.summary.length)&&!l.note);
+  if(ex){ex.qty++;ex.lineTotal=ex.unit*ex.qty;}
+  else{state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
+    sel:{},summary:[],note:"",qty:1,unit,lineTotal:unit});}
+  render();cartToast(it.name);
+}
+function cartToast(name){const wrap=document.getElementById("toasts");if(!wrap)return;
+  const el=document.createElement("div");el.className="toast cart";
+  el.innerHTML=`<div class="t-av">✓</div><div class="t-tx"><b>Добавено в кошницата</b>${name}</div>`;
+  wrap.appendChild(el);requestAnimationFrame(()=>el.classList.add("show"));
+  setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.remove(),320);},2200);}
 function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
   document.querySelectorAll(".js-cart-total").forEach(e=>e.textContent=t);
   document.querySelectorAll(".js-cart-count").forEach(e=>e.textContent=c);}
@@ -1127,7 +1142,9 @@ function bindClient(){
       window.scrollTo({top:y,behavior:"smooth"});
     }
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
-  document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;const it=state.items.find(i=>i.id===+c.dataset.item);if(it)openItem(it);});
+  document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;
+    const it=state.items.find(i=>i.id===+c.dataset.item);if(!it)return;
+    if((it.modifiers||[]).length>0)openItem(it);else quickAdd(it);});
   const oc=document.getElementById("openCart");if(oc)oc.onclick=()=>{state.view="cart";render();};
   const oc2=document.getElementById("openCart2");if(oc2)oc2.onclick=()=>{state.view="cart";render();};
   const cs=document.getElementById("closeSheet");if(cs)cs.onclick=closeSheet;
