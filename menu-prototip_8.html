@@ -124,6 +124,30 @@
   .card:hover .add-fab{background:var(--ember);color:#fff;border-color:var(--ember);transform:scale(1.08)}
   .card:active .add-fab{transform:scale(.92)}
 
+  .venue{text-align:left;margin-top:22px;border:1px solid var(--glass-bd);border-radius:18px;overflow:hidden;
+    background:rgba(255,255,255,.55);box-shadow:var(--shadow-card)}
+  .venue-h{font-family:'Unbounded',sans-serif;font-weight:600;font-size:14.5px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .venue-map{display:block;width:100%;height:172px;border:0}
+  .venue-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+  .venue-addr{display:flex;gap:11px;align-items:flex-start}
+  .venue-addr .vpin{font-size:20px;line-height:1.1;flex:0 0 auto}
+  .venue-addr b{display:block;font-size:14.5px;margin-bottom:2px}
+  .venue-addr span{font-size:13px;color:var(--muted);line-height:1.4}
+  .venue-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .vbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;padding:12px;
+    font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;
+    border:1px solid var(--glass-bd);transition:transform .12s,filter .2s,border-color .2s}
+  .vbtn:active{transform:scale(.98)}
+  .vbtn.gmaps{background:rgba(255,255,255,.85);color:var(--ink)}
+  .vbtn.gmaps svg{color:#1a73e8}
+  .vbtn.gmaps:hover{border-color:#1a73e8}
+  .vbtn.waze{background:#e9f8ff;color:#0a7ea4;border-color:#bfe9fb}
+  .vbtn.waze svg{color:#33ccff}
+  .vbtn.waze:hover{filter:brightness(.98)}
+  .vbtn.call{background:linear-gradient(180deg,#e0673a,var(--ember));color:#fff;border:none;
+    box-shadow:0 12px 24px -12px rgba(210,90,42,.8)}
+  .vbtn.call:hover{filter:brightness(1.05)}
+
   .scrim{position:fixed;inset:0;background:rgba(20,12,8,.5);z-index:75;opacity:0;pointer-events:none;
     transition:opacity .25s;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
   .scrim.show{opacity:1;pointer-events:auto}
@@ -538,6 +562,36 @@ const fmtNum=n=>n.toFixed(2).replace(".",",");
 const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
 // Цена с йерархия: евро (водещо) + лева (приглушено). За по-чист, премиум вид.
 const moneyHTML=n=>`<span class="m-eur">${fmtNum(n/EUR_RATE)} €</span><span class="m-lv">${fmtNum(n)} лв</span>`;
+
+/* ====== ДАННИ ЗА ОБЕКТА — сменете със своите реални стойности ======
+   lat/lng са координатите на ресторанта (вижте ги в Google Maps:
+   десен бутон → „Какво има тук" показва числата). */
+const VENUE={
+  name:"Грил & Бистро",
+  address:"ул. Примерна 12, гр. София",
+  phone:"+359 88 000 0000",
+  lat:42.6977,
+  lng:23.3219,
+};
+const venueTel=()=>VENUE.phone.replace(/[^\d+]/g,"");
+const mapEmbedURL=()=>`https://www.google.com/maps?q=${VENUE.lat},${VENUE.lng}&z=16&hl=bg&output=embed`;
+const gmapsURL=()=>`https://www.google.com/maps/dir/?api=1&destination=${VENUE.lat},${VENUE.lng}`;
+const wazeURL=()=>`https://waze.com/ul?ll=${VENUE.lat},${VENUE.lng}&navigate=yes`;
+function venueCard(){return `<div class="venue">
+  <div class="venue-h">📍 Къде да ни намерите</div>
+  <iframe class="venue-map" src="${mapEmbedURL()}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Карта към ${VENUE.name}"></iframe>
+  <div class="venue-body">
+    <div class="venue-addr"><span class="vpin">🍽️</span><div><b>${VENUE.name}</b><span>${VENUE.address}</span></div></div>
+    <div class="venue-nav">
+      <a class="vbtn gmaps" href="${gmapsURL()}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>Google Maps</a>
+      <a class="vbtn waze" href="${wazeURL()}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>Waze</a>
+    </div>
+    <a class="vbtn call" href="tel:${venueTel()}">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+      Поръчки: ${VENUE.phone}</a>
+  </div></div>`;}
 const root=document.getElementById("root");
 const uid=()=>"o"+Math.random().toString(36).slice(2,7);
 
@@ -839,7 +893,7 @@ function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
         <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
-    out+=`</div></div>`;});return out+`</div>`;}
+    out+=`</div></div>`;});return out+venueCard()+`</div>`;}
 function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id="floatcart">
     <button class="btn-primary" id="openCart2"><span>Виж кошницата · <span class="js-cart-count">${cartCount()}</span> ${cartCount()===1?'продукт':'продукта'}</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
 
@@ -914,6 +968,7 @@ function confirmView(){
     <div class="ordno">Номер на поръчка: <b>#${o.docID}</b></div>
     <div class="ordno">за ${o.name||'клиент'}</div>
     ${orderBox}
+    ${venueCard()}
     <div class="vibebox"><div class="av ${last&&last.channel==='sms'?'sms':''}">${last&&last.channel==='sms'?'✉':'V'}</div>
       <div class="tx"><b>${last?((last.channel==='sms'?'SMS':'Viber')+' до '+(o.phone||'клиента')):'Известие'}</b>${last?(last.toast||last.text):'Ще получиш Viber/SMS при промяна на статуса.'}</div></div>
     <div class="stepper">${stepsHtml}</div>
