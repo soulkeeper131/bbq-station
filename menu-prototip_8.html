@@ -506,45 +506,50 @@
    ============================================================ */
 const YanakAPI = {
   async getGroups(){
-    return [{id:1,name:"Скара"},{id:2,name:"Салати"},{id:3,name:"Гарнитури"},{id:4,name:"Напитки"}];
+    return [{id:1,name:"Скара"},{id:2,name:"Салати"},{id:3,name:"Напитки"},{id:4,name:"Бира"},{id:5,name:"Добавки"}];
   },
   async getStocks(){
+    // Реално меню от обекта. Цените са в ЛЕВА. Грамажите при скарата са в сурово състояние.
     return [
-      {id:101,groupID:1,name:"Свинска пържола",basicPrice:14.90,price:14.90,emoji:"🥩",
-       description:"Сочна свинска вратна пържола на жар.",
-       modifiers:[
-         {key:"g101",title:"Гарнитура",required:true,min:1,max:1,options:[
-           {id:"o1",name:"Шопска салата",delta:0},{id:"o2",name:"Пържени картофи",delta:2.00},
-           {id:"o3",name:"Ориз със зеленчуци",delta:1.50},{id:"o4",name:"Печени зеленчуци",delta:2.50}]},
-         {key:"a101",title:"Добавки",required:false,min:0,max:3,options:[
-           {id:"o5",name:"Чеснов сос",delta:1.00},{id:"o6",name:"Гъбен сос",delta:2.00},
-           {id:"o7",name:"Допълнително месо 100г",delta:5.00}]}]},
-      {id:102,groupID:1,name:"Пилешко филе на скара",basicPrice:12.50,price:12.50,emoji:"🍗",
-       description:"Крехко пилешко филе, лимон и риган.",
-       modifiers:[
-         {key:"g102",title:"Гарнитура",required:true,min:1,max:1,options:[
-           {id:"o1",name:"Зелена салата",delta:0},{id:"o2",name:"Пържени картофи",delta:2.00},
-           {id:"o3",name:"Ориз със зеленчуци",delta:1.50}]},
-         {key:"a102",title:"Добавки",required:false,min:0,max:3,options:[
-           {id:"o4",name:"Млечен сос",delta:1.00},{id:"o5",name:"Лютив сос",delta:1.00}]}]},
-      {id:103,groupID:1,name:"Свински ребра",basicPrice:18.90,price:18.90,emoji:"🍖",
-       description:"Бавно печени ребра с BBQ глазура.",
-       modifiers:[
-         {key:"g103",title:"Гарнитура",required:true,min:1,max:1,options:[
-           {id:"o1",name:"Пържени картофи",delta:2.00},{id:"o2",name:"Печени зеленчуци",delta:2.50},
-           {id:"o3",name:"Картофено пюре",delta:2.00}]}]},
-      {id:201,groupID:2,name:"Шопска салата",basicPrice:6.90,price:6.90,emoji:"🥗",description:"Домати, краставици, чушки, сирене.",modifiers:[]},
-      {id:202,groupID:2,name:"Овчарска салата",basicPrice:8.50,price:8.50,emoji:"🧀",description:"Шунка, гъби, яйце, кашкавал.",modifiers:[]},
-      {id:203,groupID:2,name:"Цезар салата",basicPrice:9.90,price:9.90,emoji:"🥬",description:"Айсберг, пиле, пармезан, крутони.",
-       modifiers:[{key:"a203",title:"Добавки",required:false,min:0,max:2,options:[
-           {id:"o1",name:"Допълнително пиле",delta:3.00},{id:"o2",name:"Анчоа",delta:1.50}]}]},
-      {id:301,groupID:3,name:"Пържени картофи",basicPrice:4.50,price:4.50,emoji:"🍟",description:"С морска сол.",modifiers:[]},
-      {id:302,groupID:3,name:"Картофено пюре",basicPrice:4.00,price:4.00,emoji:"🥔",description:"Кремообразно, с масло.",modifiers:[]},
-      {id:303,groupID:3,name:"Печени зеленчуци",basicPrice:5.50,price:5.50,emoji:"🥦",description:"Сезонни, на грил.",modifiers:[]},
-      {id:401,groupID:4,name:"Айран",basicPrice:2.00,price:2.00,emoji:"🥛",description:"Студен, домашен.",modifiers:[]},
-      {id:402,groupID:4,name:"Натурална лимонада",basicPrice:3.50,price:3.50,emoji:"🍋",description:"С прясна мента.",modifiers:[]},
-      {id:403,groupID:4,name:"Кока-Кола 330мл",basicPrice:2.80,price:2.80,emoji:"🥤",description:"",modifiers:[]},
-      {id:404,groupID:4,name:"Бира наливна 500мл",basicPrice:4.00,price:4.00,emoji:"🍺",description:"",modifiers:[]},
+      // ── Скара ──
+      {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",modifiers:[]},
+      {id:102,groupID:1,name:"Кебапче",basicPrice:1.20,price:1.20,emoji:"🍢",description:"90 г · сурово тегло",modifiers:[]},
+      {id:103,groupID:1,name:"Свинска кълцаница",basicPrice:4.50,price:4.50,emoji:"🍖",description:"220 г · сурово тегло",modifiers:[]},
+      {id:104,groupID:1,name:"Телешка плескавица",basicPrice:3.60,price:3.60,emoji:"🍔",description:"200 г · сурово тегло",modifiers:[]},
+      {id:105,groupID:1,name:"Свинска пържола (врат)",basicPrice:4.60,price:4.60,emoji:"🥩",description:"Вратна · 250 г · сурово тегло",modifiers:[]},
+      {id:106,groupID:1,name:"Свински бекон",basicPrice:3.50,price:3.50,emoji:"🥓",description:"200 г · сурово тегло",modifiers:[]},
+      {id:107,groupID:1,name:"Пилешко филе",basicPrice:4.50,price:4.50,emoji:"🍗",description:"250 г · сурово тегло",modifiers:[]},
+      {id:108,groupID:1,name:"Пилешка пържола (бут)",basicPrice:4.50,price:4.50,emoji:"🍗",description:"Бутче · 250 г · сурово тегло",modifiers:[]},
+      {id:109,groupID:1,name:"Телешка наденица",basicPrice:2.40,price:2.40,emoji:"🌭",description:"125 г · сурово тегло",modifiers:[]},
+      {id:110,groupID:1,name:"Телешки адана кебап",basicPrice:2.60,price:2.60,emoji:"🍢",description:"100 г · сурово тегло",modifiers:[]},
+      // ── Салати (100 г) ──
+      {id:201,groupID:2,name:"Боб с лютеница",basicPrice:1.20,price:1.20,emoji:"🫘",description:"100 г",modifiers:[]},
+      {id:202,groupID:2,name:"Снежанка",basicPrice:1.20,price:1.20,emoji:"🥒",description:"100 г",modifiers:[]},
+      {id:203,groupID:2,name:"Руска салата",basicPrice:1.20,price:1.20,emoji:"🥗",description:"100 г",modifiers:[]},
+      {id:204,groupID:2,name:"Чеснова със сирене",basicPrice:1.20,price:1.20,emoji:"🧄",description:"100 г",modifiers:[]},
+      {id:205,groupID:2,name:"Кьопоолу",basicPrice:1.20,price:1.20,emoji:"🍆",description:"100 г",modifiers:[]},
+      {id:206,groupID:2,name:"Домати с краставици",basicPrice:1.20,price:1.20,emoji:"🍅",description:"100 г",modifiers:[]},
+      {id:207,groupID:2,name:"Зеле с моркови",basicPrice:0.60,price:0.60,emoji:"🥬",description:"100 г",modifiers:[]},
+      // ── Напитки (безалкохолни + топли) ──
+      {id:301,groupID:3,name:"Кока-Кола 0.5 л",basicPrice:1.50,price:1.50,emoji:"🥤",description:"",modifiers:[]},
+      {id:302,groupID:3,name:"Кока-Кола 0.33 л",basicPrice:1.30,price:1.30,emoji:"🥤",description:"",modifiers:[]},
+      {id:303,groupID:3,name:"Фанта 0.5 л",basicPrice:1.50,price:1.50,emoji:"🥤",description:"",modifiers:[]},
+      {id:304,groupID:3,name:"Фанта 0.33 л",basicPrice:1.30,price:1.30,emoji:"🥤",description:"",modifiers:[]},
+      {id:305,groupID:3,name:"Спрайт 0.5 л",basicPrice:1.50,price:1.50,emoji:"🥤",description:"",modifiers:[]},
+      {id:306,groupID:3,name:"Капи 0.33 л",basicPrice:1.60,price:1.60,emoji:"🧃",description:"",modifiers:[]},
+      {id:307,groupID:3,name:"Лимонада 0.5 л",basicPrice:1.00,price:1.00,emoji:"🍋",description:"",modifiers:[]},
+      {id:308,groupID:3,name:"Студен чай 0.5 л",basicPrice:1.70,price:1.70,emoji:"🧊",description:"",modifiers:[]},
+      {id:309,groupID:3,name:"Кафе",basicPrice:1.00,price:1.00,emoji:"☕",description:"",modifiers:[]},
+      {id:310,groupID:3,name:"Чай",basicPrice:0.80,price:0.80,emoji:"🍵",description:"",modifiers:[]},
+      // ── Бира (кен 0.5 л) ──
+      {id:401,groupID:4,name:"Пиринско",basicPrice:1.50,price:1.50,emoji:"🍺",description:"кен · 0.5 л",modifiers:[]},
+      {id:402,groupID:4,name:"Шуменско",basicPrice:1.50,price:1.50,emoji:"🍺",description:"кен · 0.5 л",modifiers:[]},
+      {id:403,groupID:4,name:"Загорка",basicPrice:1.50,price:1.50,emoji:"🍺",description:"кен · 0.5 л",modifiers:[]},
+      {id:404,groupID:4,name:"Каменица",basicPrice:1.50,price:1.50,emoji:"🍺",description:"кен · 0.5 л",modifiers:[]},
+      {id:405,groupID:4,name:"Ариана",basicPrice:1.50,price:1.50,emoji:"🍺",description:"кен · 0.5 л",modifiers:[]},
+      // ── Добавки ──
+      {id:501,groupID:5,name:"Сос",basicPrice:0.20,price:0.20,emoji:"🥫",description:"30 г",modifiers:[]},
+      {id:502,groupID:5,name:"Питка хляб",basicPrice:0.60,price:0.60,emoji:"🍞",description:"100 г",modifiers:[]},
     ];
   },
   async createOrder(payload){
