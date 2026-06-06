@@ -555,7 +555,7 @@ const YanakAPI = {
   async getStocks(){
     // Реално меню от обекта. Цените са в ЛЕВА. Грамажите при скарата са в сурово състояние.
     // Месата от Скарата са самостоятелни (избор на брой). С флаг garnishable:true
-    // в листа се предлагат и гарнитури (салатите) — всяка със свой брой и цена.
+    // в листа се предлагат гарнитури (салати) и хляб — всяка със свой брой и цена.
     return [
       // ── Скара (избор на брой + гарнитури) ──
       {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",garnishable:true,modifiers:[]},
@@ -764,12 +764,18 @@ function toggleOpt(k,id,single){const it=state.modalItem;const cur=state.modalSe
   const chosen=state.modalSel[k];
   document.querySelectorAll(`.opt[data-grp="${k}"]`).forEach(el=>el.classList.toggle("sel",chosen.includes(el.dataset.opt)));
   updateModalFooter();}
-// Гарнитурите са салатите (groupID 2) — добавят се като самостоятелни редове, всяка със свой брой.
+// Гарнитури (салати) и хляб при скарата — всяка със свой брой.
+const GRILL_BREAD_IDS=[502];
 function garnishItems(){return state.items.filter(i=>i.groupID===2);}
-// Сметка в листа: месо × брой + сбор от (всяка гарнитура × нейн брой).
+function breadItems(){return state.items.filter(i=>GRILL_BREAD_IDS.includes(i.id));}
+function grillExtras(){return garnishItems().concat(breadItems());}
+function garRowHTML(g){return `<div class="gar-row">
+  <div class="gar-info"><span class="gar-nm">${g.emoji} ${g.name}</span><span class="gar-pr">${money(g.basicPrice)}</span></div>
+  <div class="qty sm"><button data-gdec="${g.id}">−</button><b data-gq="${g.id}">${state.modalGarnish[g.id]||0}</b><button data-ginc="${g.id}">+</button></div></div>`;}
+// Сметка в листа: месо × брой + сбор от (всяка добавка × нейн брой).
 function modalTotal(){const it=state.modalItem;if(!it)return 0;
   if(it.garnishable){let t=it.basicPrice*state.modalQty;
-    garnishItems().forEach(g=>{t+=(state.modalGarnish[g.id]||0)*g.basicPrice;});return t;}
+    grillExtras().forEach(g=>{t+=(state.modalGarnish[g.id]||0)*g.basicPrice;});return t;}
   return lineUnit(it,state.modalSel)*state.modalQty;}
 function changeGarnish(id,d){const cur=state.modalGarnish[id]||0;
   state.modalGarnish[id]=Math.max(0,cur+d);
@@ -800,7 +806,7 @@ function lineBreakdownRows(l){
 function addToCart(){const it=state.modalItem;
   if(it.garnishable){
     // Един групиран ред: месо (брой × цена) + избраните гарнитури, всяка със свой брой.
-    const garnishes=garnishItems().map(g=>({id:g.id,name:g.name,emoji:g.emoji,price:g.basicPrice,qty:state.modalGarnish[g.id]||0})).filter(g=>g.qty>0);
+    const garnishes=grillExtras().map(g=>({id:g.id,name:g.name,emoji:g.emoji,price:g.basicPrice,qty:state.modalGarnish[g.id]||0})).filter(g=>g.qty>0);
     const gtot=garnishes.reduce((s,g)=>s+g.price*g.qty,0);const note=state.modalNote.trim();
     // Чисто месо (без гарнитури и бележка) се слива в един ред → „2× Кюфте".
     if(!garnishes.length&&!note){
@@ -873,7 +879,7 @@ function pickupText(o){
 // Един ред от поръчката като чист текст: „2× Име (опции) — бел.: …".
 function lineLabel(l){
   let line=l.qty+"× "+l.name;
-  if(l.garnishes&&l.garnishes.length)line+=" + гарнитури: "+lineGarnishNames(l);
+  if(l.garnishes&&l.garnishes.length)line+=" + "+lineGarnishNames(l);
   else if(l.summary&&l.summary.length)line+=" ("+(l.qty>1?"всяка с: ":"")+l.summary.join(", ")+")";
   if(l.note)line+=" — бел.: "+l.note;
   return line;
@@ -1033,7 +1039,7 @@ function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     items.forEach(it=>{const hasOpt=it.garnishable||(it.modifiers||[]).length>0;const sold=it.available===false;
       out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
-        <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(it.garnishable?`<span class="badge-opt">+ гарнитури</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:""))}</div></div>
+        <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(it.garnishable?`<span class="badge-opt">+ гарнитури · хляб</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:""))}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
     out+=`</div></div>`;});return out+venueCard()+`</div>`;}
 function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id="floatcart">
@@ -1046,15 +1052,14 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
         <div class="qty"><button id="qminus">−</button><b>${state.modalQty}</b><button id="qplus">+</button></div></div>`;
   let body="";
   if(it.garnishable){
-    // Скара: първо брой на месото, после гарнитури (всяка със свой брояч).
-    const gars=garnishItems();
+    // Скара: първо брой на месото, после гарнитури и хляб (всяка със свой брояч).
+    const gars=garnishItems();const breads=breadItems();
     body=`${it.description?`<div class="sheet-desc">${it.description}</div>`:""}
       ${qtyRow("Брой")}
       <div class="opt-group"><div class="opt-head"><h3>Гарнитури</h3><span class="opt-req optx">по избор</span></div>
-        <div class="garnish-list">${gars.map(g=>`<div class="gar-row">
-          <div class="gar-info"><span class="gar-nm">${g.emoji} ${g.name}</span><span class="gar-pr">${money(g.basicPrice)}</span></div>
-          <div class="qty sm"><button data-gdec="${g.id}">−</button><b data-gq="${g.id}">${state.modalGarnish[g.id]||0}</b><button data-ginc="${g.id}">+</button></div>
-        </div>`).join("")}</div></div>
+        <div class="garnish-list">${gars.map(g=>garRowHTML(g)).join("")}</div></div>
+      <div class="opt-group"><div class="opt-head"><h3>Хляб</h3><span class="opt-req optx">по избор</span></div>
+        <div class="garnish-list">${breads.map(g=>garRowHTML(g)).join("")}</div></div>
       ${noteBlock}`;
   } else {
     let groups="";
