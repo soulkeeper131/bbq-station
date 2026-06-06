@@ -180,13 +180,16 @@
   .opt-req{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
   .opt-req.req{background:var(--ember);color:#fff}
   .opt-req.optx{background:rgba(111,115,69,.16);color:var(--olive)}
-  .opt-change{border:1px solid var(--glass-bd);background:rgba(255,255,255,.6);color:var(--ember);font-weight:700;
-    font-size:12.5px;padding:5px 13px;border-radius:999px;cursor:pointer;transition:background .15s,border-color .15s}
-  .opt-change:hover{background:rgba(210,90,42,.1);border-color:rgba(210,90,42,.5)}
-  .opt-chosen{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--glass-bd);
-    border-radius:14px;background:rgba(255,255,255,.55);font-size:14.5px;font-weight:600}
-  .opt-chosen .cm-dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;background:var(--ember);
-    box-shadow:inset 0 0 0 3px #fff}
+  /* Гарнитури в листа на скарата — ред с име/цена и собствен брояч. */
+  .garnish-list{display:flex;flex-direction:column;gap:8px}
+  .gar-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 13px;
+    border:1px solid var(--glass-bd);border-radius:14px;background:rgba(255,255,255,.4)}
+  .gar-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .gar-nm{font-size:14.5px;font-weight:600;line-height:1.25}
+  .gar-pr{font-size:12.5px;font-weight:700;color:var(--muted)}
+  .qty.sm{flex:0 0 auto}
+  .qty.sm button{width:34px;height:34px;font-size:18px}
+  .qty.sm b{font-size:16px;min-width:26px}
   .opt{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--glass-bd);border-radius:14px;
     margin-bottom:9px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.4)}
   .opt:hover{border-color:rgba(210,90,42,.5)}
@@ -521,29 +524,20 @@ const YanakAPI = {
   },
   async getStocks(){
     // Реално меню от обекта. Цените са в ЛЕВА. Грамажите при скарата са в сурово състояние.
-    // Гарнитури за скарата: 1 безплатна (вкл. „Без гарнитура"), всяка следваща — на цена.
-    // Цената на доп. гарнитура е колкото самата салата (салати 1.20, зеле 0.60).
-    const SALADS=[["Боб с лютеница",1.20],["Снежанка",1.20],["Руска салата",1.20],
-      ["Чеснова със сирене",1.20],["Кьопоолу",1.20],["Домати с краставици",1.20],["Зеле с моркови",0.60]];
-    const garnish=(id)=>[
-      {key:"gar"+id,title:"Гарнитура (1 безплатна)",required:true,min:1,max:1,collapsible:true,options:[
-        {id:"gn",name:"Без гарнитура",delta:0,isNone:true},
-        ...SALADS.map((s,i)=>({id:"g"+i,name:s[0],delta:0}))]},
-      {key:"xgar"+id,title:"Допълнителна гарнитура",required:false,min:0,max:6,dependsOn:"gar"+id,
-        options:SALADS.map((s,i)=>({id:"x"+i,name:s[0],delta:s[1]}))},
-    ];
+    // Месата от Скарата са самостоятелни (избор на брой). С флаг garnishable:true
+    // в листа се предлагат и гарнитури (салатите) — всяка със свой брой и цена.
     return [
-      // ── Скара (с избор на гарнитура) ──
-      {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",modifiers:garnish(101)},
-      {id:102,groupID:1,name:"Кебапче",basicPrice:1.20,price:1.20,emoji:"🍢",description:"90 г · сурово тегло",modifiers:garnish(102)},
-      {id:103,groupID:1,name:"Свинска кълцаница",basicPrice:4.50,price:4.50,emoji:"🍖",description:"220 г · сурово тегло",modifiers:garnish(103)},
-      {id:104,groupID:1,name:"Телешка плескавица",basicPrice:3.60,price:3.60,emoji:"🍔",description:"200 г · сурово тегло",modifiers:garnish(104)},
-      {id:105,groupID:1,name:"Свинска пържола (врат)",basicPrice:4.60,price:4.60,emoji:"🥩",description:"Вратна · 250 г · сурово тегло",modifiers:garnish(105)},
-      {id:106,groupID:1,name:"Свински бекон",basicPrice:3.50,price:3.50,emoji:"🥓",description:"200 г · сурово тегло",modifiers:garnish(106)},
-      {id:107,groupID:1,name:"Пилешко филе",basicPrice:4.50,price:4.50,emoji:"🍗",description:"250 г · сурово тегло",modifiers:garnish(107)},
-      {id:108,groupID:1,name:"Пилешка пържола (бут)",basicPrice:4.50,price:4.50,emoji:"🍗",description:"Бутче · 250 г · сурово тегло",modifiers:garnish(108)},
-      {id:109,groupID:1,name:"Телешка наденица",basicPrice:2.40,price:2.40,emoji:"🌭",description:"125 г · сурово тегло",modifiers:garnish(109)},
-      {id:110,groupID:1,name:"Телешки адана кебап",basicPrice:2.60,price:2.60,emoji:"🍢",description:"100 г · сурово тегло",modifiers:garnish(110)},
+      // ── Скара (избор на брой + гарнитури) ──
+      {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:102,groupID:1,name:"Кебапче",basicPrice:1.20,price:1.20,emoji:"🍢",description:"90 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:103,groupID:1,name:"Свинска кълцаница",basicPrice:4.50,price:4.50,emoji:"🍖",description:"220 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:104,groupID:1,name:"Телешка плескавица",basicPrice:3.60,price:3.60,emoji:"🍔",description:"200 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:105,groupID:1,name:"Свинска пържола (врат)",basicPrice:4.60,price:4.60,emoji:"🥩",description:"Вратна · 250 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:106,groupID:1,name:"Свински бекон",basicPrice:3.50,price:3.50,emoji:"🥓",description:"200 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:107,groupID:1,name:"Пилешко филе",basicPrice:4.50,price:4.50,emoji:"🍗",description:"250 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:108,groupID:1,name:"Пилешка пържола (бут)",basicPrice:4.50,price:4.50,emoji:"🍗",description:"Бутче · 250 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:109,groupID:1,name:"Телешка наденица",basicPrice:2.40,price:2.40,emoji:"🌭",description:"125 г · сурово тегло",garnishable:true,modifiers:[]},
+      {id:110,groupID:1,name:"Телешки адана кебап",basicPrice:2.60,price:2.60,emoji:"🍢",description:"100 г · сурово тегло",garnishable:true,modifiers:[]},
       // ── Салати (100 г) ──
       {id:201,groupID:2,name:"Боб с лютеница",basicPrice:1.20,price:1.20,emoji:"🫘",description:"100 г",modifiers:[]},
       {id:202,groupID:2,name:"Снежанка",basicPrice:1.20,price:1.20,emoji:"🥒",description:"100 г",modifiers:[]},
@@ -583,7 +577,7 @@ const YanakAPI = {
 
 const state={
   mode:"client", groups:[], items:[], activeGroup:null, productImages:{},
-  cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"", modalExpand:{}, modalShown:false,
+  cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"", modalGarnish:{}, modalShown:false,
   order:{name:"",phone:"",time:"asap"},
   orders:[], activeOrderId:null, autoSim:false,
   tracking:false, trackInput:false, trackInputVal:"", trackErr:"",
@@ -596,8 +590,8 @@ const fmtNum=n=>n.toFixed(2).replace(".",",");
 const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
 // Цена с йерархия: евро (водещо) + лева (приглушено). За по-чист, премиум вид.
 const moneyHTML=n=>`<span class="m-eur">${fmtNum(n/EUR_RATE)} €</span><span class="m-lv">${fmtNum(n)} лв</span>`;
-// Пояснение към реда в кошницата: прави ясно, че при 2+ бройки гарнитурите
-// се повтарят за ВСЯКА порция (напр. „2 × 2,40 лв · всяка с: Снежанка · Руска“).
+// Пояснение към реда в кошницата: при 2+ бройки показва единичната цена
+// (напр. „5 × 1,20 лв“). Гарнитурите вече са отделни редове.
 function linePortionText(l){
   const parts=[];
   if(l.qty>1) parts.push(l.qty+" × "+fmtNum(l.unit)+" лв");
@@ -730,45 +724,55 @@ const cartTotal=()=>state.cart.reduce((s,l)=>s+l.lineTotal,0);
 function lineUnit(item,sel){let p=item.basicPrice;(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))p+=o.delta;});});return p;}
 function selSummary(item,sel){const parts=[];(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))parts.push(o.name);});});return parts;}
 
-function openItem(item){state.modalItem=item;state.modalQty=1;state.modalNote="";state.modalSel={};state.modalExpand={};state.modalShown=false;render();
+function openItem(item){state.modalItem=item;state.modalQty=1;state.modalNote="";state.modalSel={};state.modalGarnish={};state.modalShown=false;render();
   requestAnimationFrame(()=>{state.modalShown=true;document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");});}
 function closeSheet(){state.modalShown=false;document.getElementById("scrim")?.classList.remove("show");document.getElementById("sheet")?.classList.remove("show");
   setTimeout(()=>{state.modalItem=null;render();},300);}
-// Ре-рендер на отворения лист (структурна промяна: свиване/показване на групи) без мигане.
-function refreshSheet(){render();}
 function keepSheetOpen(){document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");}
 function toggleOpt(k,id,single){const it=state.modalItem;const cur=state.modalSel[k]||[];
   state.modalSel[k]=single?[id]:(cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
-  const grp=(it&&it.modifiers||[]).find(g=>g.key===k);
-  if(grp&&grp.collapsible){
-    // Избор в свиваема група → свиваме дропдауна.
-    state.modalExpand[k]=false;
-    // „Без гарнитура“ → махаме всички зависими (допълнителни) гарнитури.
-    const pickedNone=grp.options.some(o=>o.isNone&&state.modalSel[k].includes(o.id));
-    if(pickedNone)(it.modifiers||[]).forEach(g=>{if(g.dependsOn===k)state.modalSel[g.key]=[];});
-    refreshSheet();return; // структурна промяна → пълен ре-рендер
-  }
   const chosen=state.modalSel[k];
   document.querySelectorAll(`.opt[data-grp="${k}"]`).forEach(el=>el.classList.toggle("sel",chosen.includes(el.dataset.opt)));
   updateModalFooter();}
-function expandGroup(k){state.modalExpand[k]=true;refreshSheet();}
-// Пояснение под „Брой порции“: при 2+ бройки гарнитурите се повтарят за всяка порция.
-function qtyHintText(){
-  const it=state.modalItem;if(!it)return "";
-  const sum=selSummary(it,state.modalSel);const q=state.modalQty;
-  if(q<=1)return sum.length?("Включва: "+sum.join(" · ")):"";
-  return sum.length?(q+" порции · всяка включва: "+sum.join(" · ")):(q+" порции");
-}
+// Гарнитурите са салатите (groupID 2) — добавят се като самостоятелни редове, всяка със свой брой.
+function garnishItems(){return state.items.filter(i=>i.groupID===2);}
+// Сметка в листа: месо × брой + сбор от (всяка гарнитура × нейн брой).
+function modalTotal(){const it=state.modalItem;if(!it)return 0;
+  if(it.garnishable){let t=it.basicPrice*state.modalQty;
+    garnishItems().forEach(g=>{t+=(state.modalGarnish[g.id]||0)*g.basicPrice;});return t;}
+  return lineUnit(it,state.modalSel)*state.modalQty;}
+function changeGarnish(id,d){const cur=state.modalGarnish[id]||0;
+  state.modalGarnish[id]=Math.max(0,cur+d);
+  const b=document.querySelector(`.sheet [data-gq="${id}"]`);if(b)b.textContent=state.modalGarnish[id];
+  updateModalFooter();}
 function updateModalFooter(){const it=state.modalItem;if(!it)return;
-  const unit=lineUnit(it,state.modalSel),valid=modalValid();
-  const qb=document.querySelector(".sheet .qty b");if(qb)qb.textContent=state.modalQty;
-  const hint=document.getElementById("qtyHint");if(hint)hint.textContent=qtyHintText();
+  const valid=modalValid();
+  const qb=document.querySelector(".sheet .qty:not(.sm) b");if(qb)qb.textContent=state.modalQty;
   const btn=document.getElementById("addCart");if(btn){btn.disabled=!valid;
     const s=btn.querySelectorAll("span");
     if(s[0])s[0].textContent=valid?'Добави в кошницата':'Избери задължителните опции';
-    if(s[1])s[1].textContent=money(unit*state.modalQty);}}
+    if(s[1])s[1].textContent=money(modalTotal());}}
 function modalValid(){const it=state.modalItem;if(!it)return false;return (it.modifiers||[]).every(g=>{const c=(state.modalSel[g.key]||[]).length;return c>=(g.min||0)&&(!g.required||c>=1);});}
-function addToCart(){const it=state.modalItem;const unit=lineUnit(it,state.modalSel);
+function mergeOrPush(line){
+  const ex=state.cart.find(l=>l.itemId===line.itemId&&(!l.summary||!l.summary.length)&&!l.note);
+  if(ex){ex.qty+=line.qty;ex.lineTotal=ex.unit*ex.qty;}
+  else state.cart.push(line);
+}
+function addToCart(){const it=state.modalItem;
+  if(it.garnishable){
+    // Месото е самостоятелен ред (брой × цена). Бележката се закача за него.
+    const note=state.modalNote.trim();
+    if(note)state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
+      sel:{},summary:[],note,qty:state.modalQty,unit:it.basicPrice,lineTotal:it.basicPrice*state.modalQty});
+    else mergeOrPush({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
+      sel:{},summary:[],note:"",qty:state.modalQty,unit:it.basicPrice,lineTotal:it.basicPrice*state.modalQty});
+    // Всяка избрана гарнитура → отделен ред (слива се със същата салата в кошницата).
+    garnishItems().forEach(g=>{const q=state.modalGarnish[g.id]||0;if(q<=0)return;
+      mergeOrPush({lineId:Date.now()+Math.random(),itemId:g.id,name:g.name,emoji:g.emoji,
+        sel:{},summary:[],note:"",qty:q,unit:g.basicPrice,lineTotal:g.basicPrice*q});});
+    closeSheet();return;
+  }
+  const unit=lineUnit(it,state.modalSel);
   state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
     sel:JSON.parse(JSON.stringify(state.modalSel)),summary:selSummary(it,state.modalSel),
     note:state.modalNote.trim(),qty:state.modalQty,unit,lineTotal:unit*state.modalQty});closeSheet();}
@@ -965,49 +969,49 @@ function tabs(){return `<div class="tabs">${state.groups.map(g=>`<div class="tab
 function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
-    items.forEach(it=>{const hasOpt=(it.modifiers||[]).length>0;const sold=it.available===false;
+    items.forEach(it=>{const hasOpt=it.garnishable||(it.modifiers||[]).length>0;const sold=it.available===false;
       out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
-        <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
+        <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(it.garnishable?`<span class="badge-opt">+ гарнитури</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:""))}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
     out+=`</div></div>`;});return out+venueCard()+`</div>`;}
 function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id="floatcart">
     <button class="btn-primary" id="openCart2"><span>Виж кошницата · <span class="js-cart-count">${cartCount()}</span> ${cartCount()===1?'продукт':'продукта'}</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
 
 function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="scrim"></div>`;
-  const unit=lineUnit(it,state.modalSel);let groups="";
-  (it.modifiers||[]).forEach(g=>{const single=g.max===1;const chosen=state.modalSel[g.key]||[];
-    // Зависима група (напр. „Допълнителна гарнитура“) се показва само ако е избрана
-    // реална гарнитура — при „Без гарнитура“ или липса на избор се скрива.
-    if(g.dependsOn){
-      const depGrp=(it.modifiers||[]).find(x=>x.key===g.dependsOn);const depSel=state.modalSel[g.dependsOn]||[];
-      const realDep=depSel.length>0 && depGrp && !depGrp.options.some(o=>o.isNone&&depSel.includes(o.id));
-      if(!realDep)return;
-    }
-    // Свиваема група с вече избрана стойност → компактен изглед + бутон „Смени“.
-    if(g.collapsible && chosen.length && !state.modalExpand[g.key]){
-      const chosenName=((g.options.find(o=>chosen.includes(o.id))||{}).name)||"";
+  const noteBlock=`<div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
+        <textarea class="note-in" id="note" rows="2" placeholder="напр. без лук, добре опечено…">${state.modalNote}</textarea></div>`;
+  const qtyRow=(label)=>`<div class="qty-row"><div class="qty-lbl"><span>${label}</span></div>
+        <div class="qty"><button id="qminus">−</button><b>${state.modalQty}</b><button id="qplus">+</button></div></div>`;
+  let body="";
+  if(it.garnishable){
+    // Скара: първо брой на месото, после гарнитури (всяка със свой брояч).
+    const gars=garnishItems();
+    body=`${it.description?`<div class="sheet-desc">${it.description}</div>`:""}
+      ${qtyRow("Брой")}
+      <div class="opt-group"><div class="opt-head"><h3>Гарнитури</h3><span class="opt-req optx">по избор</span></div>
+        <div class="garnish-list">${gars.map(g=>`<div class="gar-row">
+          <div class="gar-info"><span class="gar-nm">${g.emoji} ${g.name}</span><span class="gar-pr">${money(g.basicPrice)}</span></div>
+          <div class="qty sm"><button data-gdec="${g.id}">−</button><b data-gq="${g.id}">${state.modalGarnish[g.id]||0}</b><button data-ginc="${g.id}">+</button></div>
+        </div>`).join("")}</div></div>
+      ${noteBlock}`;
+  } else {
+    let groups="";
+    (it.modifiers||[]).forEach(g=>{const single=g.max===1;const chosen=state.modalSel[g.key]||[];
       groups+=`<div class="opt-group"><div class="opt-head"><h3>${g.title}</h3>
-        <button class="opt-change" data-expand="${g.key}">Смени</button></div>
-        <div class="opt-chosen"><span class="cm-dot"></span><span>${chosenName}</span></div></div>`;
-      return;
-    }
-    groups+=`<div class="opt-group"><div class="opt-head"><h3>${g.title}</h3>
-      <span class="opt-req ${g.required?'req':'optx'}">${g.required?'задължително':'по избор'}</span></div>
-      ${g.options.map(o=>{const sel=chosen.includes(o.id);
-        return `<div class="opt ${single?'':'check'} ${sel?'sel':''}" data-grp="${g.key}" data-opt="${o.id}" data-single="${single}">
-          <div class="mark"></div><div class="lbl">${o.name}</div>
-          <div class="delta">${o.delta>0?'+ '+money(o.delta):'включено'}</div></div>`;}).join("")}</div>`;});
+        <span class="opt-req ${g.required?'req':'optx'}">${g.required?'задължително':'по избор'}</span></div>
+        ${g.options.map(o=>{const sel=chosen.includes(o.id);
+          return `<div class="opt ${single?'':'check'} ${sel?'sel':''}" data-grp="${g.key}" data-opt="${o.id}" data-single="${single}">
+            <div class="mark"></div><div class="lbl">${o.name}</div>
+            <div class="delta">${o.delta>0?'+ '+money(o.delta):'включено'}</div></div>`;}).join("")}</div>`;});
+    body=`${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}${noteBlock}${qtyRow("Брой порции")}`;
+  }
   const valid=modalValid();const heroImg=imgFor(it);
   return `<div class="scrim show" id="scrim"></div><div class="sheet${state.modalShown?' show':''}" id="sheet">
     <div class="sheet-hero ${heroImg?'has-img':''}"${heroImg?` style="background-image:url('${heroImg}')"`:''}>${heroImg?'':`<span class="emoji">${it.emoji||"🍽️"}</span>`}<h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
-    <div class="sheet-scroll">${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}
-      <div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
-        <textarea class="note-in" id="note" rows="2" placeholder="напр. без лук, добре опечено…">${state.modalNote}</textarea></div>
-      <div class="qty-row"><div class="qty-lbl"><span>Брой порции</span><div class="qty-sub" id="qtyHint">${qtyHintText()}</div></div>
-        <div class="qty"><button id="qminus">−</button><b>${state.modalQty}</b><button id="qplus">+</button></div></div></div>
+    <div class="sheet-scroll">${body}</div>
     <div class="sheet-foot"><button class="btn-primary split" id="addCart" ${valid?'':'disabled'}>
-      <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(unit*state.modalQty)}</span></button></div></div>`;}
+      <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(modalTotal())}</span></button></div></div>`;}
 
 function cartPanel(){
   const show=(state.view==="cart"||state.view==="checkout");let inner="";let title="Твоята кошница";let backCls="";
@@ -1221,13 +1225,14 @@ function bindClient(){
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
   document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;
     const it=state.items.find(i=>i.id===+c.dataset.item);if(!it)return;
-    if((it.modifiers||[]).length>0)openItem(it);else quickAdd(it);});
+    if(it.garnishable||(it.modifiers||[]).length>0)openItem(it);else quickAdd(it);});
   const oc=document.getElementById("openCart");if(oc)oc.onclick=()=>{state.view="cart";render();};
   const oc2=document.getElementById("openCart2");if(oc2)oc2.onclick=()=>{state.view="cart";render();};
   const cs=document.getElementById("closeSheet");if(cs)cs.onclick=closeSheet;
   const scrim=document.getElementById("scrim");if(scrim)scrim.onclick=closeSheet;
   document.querySelectorAll(".opt").forEach(o=>o.onclick=()=>toggleOpt(o.dataset.grp,o.dataset.opt,o.dataset.single==="true"));
-  document.querySelectorAll("[data-expand]").forEach(b=>b.onclick=()=>expandGroup(b.dataset.expand));
+  document.querySelectorAll("[data-ginc]").forEach(b=>b.onclick=()=>changeGarnish(+b.dataset.ginc,1));
+  document.querySelectorAll("[data-gdec]").forEach(b=>b.onclick=()=>changeGarnish(+b.dataset.gdec,-1));
   const qm=document.getElementById("qminus");if(qm)qm.onclick=()=>{state.modalQty=Math.max(1,state.modalQty-1);updateModalFooter();};
   const qp=document.getElementById("qplus");if(qp)qp.onclick=()=>{state.modalQty++;updateModalFooter();};
   const note=document.getElementById("note");if(note)note.oninput=e=>{state.modalNote=e.target.value;};
