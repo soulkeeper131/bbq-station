@@ -195,7 +195,10 @@
   .note-in{width:100%;border:1px solid var(--glass-bd);border-radius:14px;padding:12px 13px;font-family:inherit;
     font-size:14px;margin-top:8px;resize:none;background:rgba(255,255,255,.5)}
   .note-in:focus{outline:none;border-color:var(--ember)}
-  .qty-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+  .qty-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:20px}
+  .qty-lbl{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .qty-lbl>span{font-weight:700}
+  .qty-sub{font-size:12px;color:var(--muted);font-weight:500;line-height:1.4;overflow-wrap:anywhere}
   .qty{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;background:rgba(255,255,255,.6);overflow:hidden}
   .qty button{width:40px;height:40px;border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);
     display:flex;align-items:center;justify-content:center;transition:background .12s}
@@ -234,6 +237,7 @@
   .cart-line .nm{font-weight:700;font-size:15.5px;min-width:0;overflow-wrap:anywhere}
   .cart-line .lt{font-family:'Golos Text',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;flex:0 0 auto}
   .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
+  .cart-line .opts:empty{display:none}
   .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
   .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
     background:rgba(255,255,255,.6);overflow:hidden}
@@ -585,6 +589,14 @@ const fmtNum=n=>n.toFixed(2).replace(".",",");
 const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
 // Цена с йерархия: евро (водещо) + лева (приглушено). За по-чист, премиум вид.
 const moneyHTML=n=>`<span class="m-eur">${fmtNum(n/EUR_RATE)} €</span><span class="m-lv">${fmtNum(n)} лв</span>`;
+// Пояснение към реда в кошницата: прави ясно, че при 2+ бройки гарнитурите
+// се повтарят за ВСЯКА порция (напр. „2 × 2,40 лв · всяка с: Снежанка · Руска“).
+function linePortionText(l){
+  const parts=[];
+  if(l.qty>1) parts.push(l.qty+" × "+fmtNum(l.unit)+" лв");
+  if(l.summary&&l.summary.length) parts.push((l.qty>1?"всяка с: ":"+ ")+l.summary.join(" · "));
+  return parts.join(" · ");
+}
 
 /* ====== ДАННИ ЗА ОБЕКТА — сменете със своите реални стойности ======
    lat/lng са координатите на ресторанта (вижте ги в Google Maps:
@@ -721,9 +733,17 @@ function toggleOpt(k,id,single){const cur=state.modalSel[k]||[];
   const chosen=state.modalSel[k];
   document.querySelectorAll(`.opt[data-grp="${k}"]`).forEach(el=>el.classList.toggle("sel",chosen.includes(el.dataset.opt)));
   updateModalFooter();}
+// Пояснение под „Брой порции“: при 2+ бройки гарнитурите се повтарят за всяка порция.
+function qtyHintText(){
+  const it=state.modalItem;if(!it)return "";
+  const sum=selSummary(it,state.modalSel);const q=state.modalQty;
+  if(q<=1)return sum.length?("Включва: "+sum.join(" · ")):"";
+  return sum.length?(q+" порции · всяка включва: "+sum.join(" · ")):(q+" порции");
+}
 function updateModalFooter(){const it=state.modalItem;if(!it)return;
   const unit=lineUnit(it,state.modalSel),valid=modalValid();
   const qb=document.querySelector(".sheet .qty b");if(qb)qb.textContent=state.modalQty;
+  const hint=document.getElementById("qtyHint");if(hint)hint.textContent=qtyHintText();
   const btn=document.getElementById("addCart");if(btn){btn.disabled=!valid;
     const s=btn.querySelectorAll("span");
     if(s[0])s[0].textContent=valid?'Добави в кошницата':'Избери задължителните опции';
@@ -753,7 +773,8 @@ function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
 function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
   l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty;
   const el=document.querySelector(`[data-line="${id}"]`);
-  if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;updateTotalsUI();persist();}
+  if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;
+    const p=el.querySelector(".js-portion");if(p)p.textContent=linePortionText(l);updateTotalsUI();persist();}
   else{persist();render();}}
 function removeLine(id){state.cart=state.cart.filter(x=>x.lineId!==id);persist();render();}
 
@@ -787,7 +808,7 @@ function pickupText(o){
 // Един ред от поръчката като чист текст: „2× Име (опции) — бел.: …".
 function lineLabel(l){
   let line=l.qty+"× "+l.name;
-  if(l.summary&&l.summary.length)line+=" ("+l.summary.join(", ")+")";
+  if(l.summary&&l.summary.length)line+=" ("+(l.qty>1?"всяка с: ":"")+l.summary.join(", ")+")";
   if(l.note)line+=" — бел.: "+l.note;
   return line;
 }
@@ -797,7 +818,7 @@ function orderLinesText(o){return (o.lines||[]).map(l=>"• "+lineLabel(l)).join
 function orderLinesHTML(o){
   return (o.lines||[]).map(l=>{
     let h=`<b>${l.qty}× ${l.name}</b>`;
-    if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.summary.join(", ")}</span>`;
+    if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.qty>1?"всяка с: ":""}${l.summary.join(", ")}</span>`;
     if(l.note)h+=`<span class="li-note">📝 ${l.note}</span>`;
     return `<div class="ol-line">${h}</div>`;
   }).join("");
@@ -949,7 +970,7 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
     <div class="sheet-scroll">${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}
       <div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
         <textarea class="note-in" id="note" rows="2" placeholder="напр. без лук, добре опечено…">${state.modalNote}</textarea></div>
-      <div class="qty-row"><span style="font-weight:700">Количество</span>
+      <div class="qty-row"><div class="qty-lbl"><span>Брой порции</span><div class="qty-sub" id="qtyHint">${qtyHintText()}</div></div>
         <div class="qty"><button id="qminus">−</button><b>${state.modalQty}</b><button id="qplus">+</button></div></div></div>
     <div class="sheet-foot"><button class="btn-primary split" id="addCart" ${valid?'':'disabled'}>
       <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(unit*state.modalQty)}</span></button></div></div>`;}
@@ -968,7 +989,7 @@ function cartPanel(){
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
       <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
-        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${l.summary&&l.summary.length?`<span class="li-opt">${l.summary.join(", ")}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
+        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
         <div class="ob-total"><span>Общо за плащане</span><span>${moneyHTML(cartTotal())}</span></div></div></div>
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
@@ -976,7 +997,7 @@ function cartPanel(){
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
-        ${l.summary.length?`<div class="opts">+ ${l.summary.join(" · ")}</div>`:""}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        <div class="opts js-portion">${linePortionText(l)}</div>${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
