@@ -844,7 +844,7 @@ const PAY_NOTE="💳 Плащане само на място — с карта �
 
 // Час за вземане в човешки вид.
 function pickupText(o){
-  if(!o.time||o.time==="asap")return "възможно най-скоро (15–20 мин)";
+  if(!o.time||o.time==="asap")return "сега";
   return "след "+o.time+" мин";
 }
 // Един ред от поръчката като чист текст: „2× Име (опции) — бел.: …".
@@ -1042,7 +1042,7 @@ function cartPanel(){
       <div class="field"><label>Име за поръчката</label><input id="f-name" value="${o.name}" placeholder="напр. Иван"></div>
       <div class="field"><label>Телефон за нотификация</label><input id="f-phone" value="${o.phone}" placeholder="+359 ..." inputmode="tel"></div>
       <div class="field"><label>Кога ще вземете поръчката?</label><div class="time-opts">
-        <div class="time-opt ${o.time==='asap'?'sel':''}" data-time="asap">Възможно най-скоро</div>
+        <div class="time-opt ${o.time==='asap'?'sel':''}" data-time="asap">Сега</div>
         <div class="time-opt ${o.time==='30'?'sel':''}" data-time="30">След 30 мин</div>
         <div class="time-opt ${o.time==='45'?'sel':''}" data-time="45">След 45 мин</div>
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
