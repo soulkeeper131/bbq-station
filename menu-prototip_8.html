@@ -831,8 +831,8 @@ function cartPanel(){
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
         ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${money(l.lineTotal)}</span></div>${l.summary&&l.summary.length?`<span class="li-opt">${l.summary.join(", ")}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
         <div class="ob-total"><span>Общо за плащане</span><span>${money(cartTotal())}</span></div></div></div>
-      <div class="sheet-foot"><button class="btn-primary split" id="placeBtn" ${ready?'':'disabled'}>
-        <span>${ready?'Изпрати поръчката':'Попълни име и телефон'}</span><span>${money(cartTotal())}</span></button></div>`;
+      <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
+        ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
   } else {
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
