@@ -248,6 +248,10 @@
   .cart-line .lt{font-family:'Golos Text',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;flex:0 0 auto}
   .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
   .cart-line .opts:empty{display:none}
+  /* Гарнитури, групирани към грил реда — малки чипове „кое с кое". */
+  .cart-line .combo{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .combo-g{font-size:12px;font-weight:600;color:var(--olive);background:rgba(111,115,69,.12);
+    border-radius:999px;padding:3px 10px;line-height:1.4}
   .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
   .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
     background:rgba(255,255,255,.6);overflow:hidden}
@@ -753,28 +757,23 @@ function updateModalFooter(){const it=state.modalItem;if(!it)return;
     if(s[0])s[0].textContent=valid?'Добави в кошницата':'Избери задължителните опции';
     if(s[1])s[1].textContent=money(modalTotal());}}
 function modalValid(){const it=state.modalItem;if(!it)return false;return (it.modifiers||[]).every(g=>{const c=(state.modalSel[g.key]||[]).length;return c>=(g.min||0)&&(!g.required||c>=1);});}
-function mergeOrPush(line){
-  const ex=state.cart.find(l=>l.itemId===line.itemId&&(!l.summary||!l.summary.length)&&!l.note);
-  if(ex){ex.qty+=line.qty;ex.lineTotal=ex.unit*ex.qty;}
-  else state.cart.push(line);
-}
+// Сбор от гарнитурите на един комбиниран ред (всяка × неин брой).
+function garnishTotal(l){return (l.garnishes||[]).reduce((s,g)=>s+g.price*g.qty,0);}
+// Имена на гарнитурите за реда: „Снежанка ×2 · Зеле с моркови".
+function lineGarnishNames(l){return (l.garnishes||[]).map(g=>g.name+(g.qty>1?" ×"+g.qty:"")).join(" · ");}
 function addToCart(){const it=state.modalItem;
   if(it.garnishable){
-    // Месото е самостоятелен ред (брой × цена). Бележката се закача за него.
-    const note=state.modalNote.trim();
-    if(note)state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
-      sel:{},summary:[],note,qty:state.modalQty,unit:it.basicPrice,lineTotal:it.basicPrice*state.modalQty});
-    else mergeOrPush({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
-      sel:{},summary:[],note:"",qty:state.modalQty,unit:it.basicPrice,lineTotal:it.basicPrice*state.modalQty});
-    // Всяка избрана гарнитура → отделен ред (слива се със същата салата в кошницата).
-    garnishItems().forEach(g=>{const q=state.modalGarnish[g.id]||0;if(q<=0)return;
-      mergeOrPush({lineId:Date.now()+Math.random(),itemId:g.id,name:g.name,emoji:g.emoji,
-        sel:{},summary:[],note:"",qty:q,unit:g.basicPrice,lineTotal:g.basicPrice*q});});
+    // Един групиран ред: месо (брой × цена) + избраните гарнитури, всяка със свой брой.
+    const garnishes=garnishItems().map(g=>({id:g.id,name:g.name,emoji:g.emoji,price:g.basicPrice,qty:state.modalGarnish[g.id]||0})).filter(g=>g.qty>0);
+    const gtot=garnishes.reduce((s,g)=>s+g.price*g.qty,0);
+    state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
+      sel:{},summary:[],garnishes,note:state.modalNote.trim(),qty:state.modalQty,unit:it.basicPrice,
+      lineTotal:it.basicPrice*state.modalQty+gtot});
     closeSheet();return;
   }
   const unit=lineUnit(it,state.modalSel);
   state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
-    sel:JSON.parse(JSON.stringify(state.modalSel)),summary:selSummary(it,state.modalSel),
+    sel:JSON.parse(JSON.stringify(state.modalSel)),summary:selSummary(it,state.modalSel),garnishes:[],
     note:state.modalNote.trim(),qty:state.modalQty,unit,lineTotal:unit*state.modalQty});closeSheet();}
 // Бързо добавяне за продукти без опции (напр. напитки) — без отваряне на екрана за избор.
 function quickAdd(it){
@@ -794,7 +793,7 @@ function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
   document.querySelectorAll(".js-cart-total").forEach(e=>e.textContent=t);
   document.querySelectorAll(".js-cart-count").forEach(e=>e.textContent=c);}
 function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
-  l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty;
+  l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty+garnishTotal(l);
   const el=document.querySelector(`[data-line="${id}"]`);
   if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;
     const p=el.querySelector(".js-portion");if(p)p.textContent=linePortionText(l);updateTotalsUI();persist();}
@@ -804,11 +803,11 @@ function removeLine(id){state.cart=state.cart.filter(x=>x.lineId!==id);persist()
 async function placeOrder(){
   const btn=document.getElementById("placeBtn");if(btn){btn.disabled=true;btn.textContent="Изпращане…";}
   const payload={type:"takeaway",customer:{name:state.order.name,phone:state.order.phone},pickup:state.order.time,
-    lines:state.cart.map(l=>({stockId:l.itemId,qty:l.qty,unitPrice:l.unit,options:l.summary,note:l.note})),total:cartTotal()};
+    lines:state.cart.map(l=>({stockId:l.itemId,qty:l.qty,unitPrice:l.unit,options:(l.garnishes&&l.garnishes.length)?l.garnishes.map(g=>g.name+(g.qty>1?" ×"+g.qty:"")):l.summary,note:l.note})),total:cartTotal()};
   glog("order:submit",payload);
   const res=await YanakAPI.createOrder(payload);
   const rec={docID:res.docID,name:state.order.name,phone:state.order.phone,time:state.order.time,
-    lines:state.cart.map(l=>({name:l.name,qty:l.qty,summary:l.summary,note:l.note})),total:cartTotal(),status:0,notifs:[]};
+    lines:state.cart.map(l=>({name:l.name,qty:l.qty,summary:l.summary,garnishes:l.garnishes||[],note:l.note})),total:cartTotal(),status:0,notifs:[]};
   glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
     lines:rec.lines.map(lineLabel),total:rec.total});
   state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
@@ -831,7 +830,8 @@ function pickupText(o){
 // Един ред от поръчката като чист текст: „2× Име (опции) — бел.: …".
 function lineLabel(l){
   let line=l.qty+"× "+l.name;
-  if(l.summary&&l.summary.length)line+=" ("+(l.qty>1?"всяка с: ":"")+l.summary.join(", ")+")";
+  if(l.garnishes&&l.garnishes.length)line+=" + гарнитури: "+lineGarnishNames(l);
+  else if(l.summary&&l.summary.length)line+=" ("+(l.qty>1?"всяка с: ":"")+l.summary.join(", ")+")";
   if(l.note)line+=" — бел.: "+l.note;
   return line;
 }
@@ -841,7 +841,8 @@ function orderLinesText(o){return (o.lines||[]).map(l=>"• "+lineLabel(l)).join
 function orderLinesHTML(o){
   return (o.lines||[]).map(l=>{
     let h=`<b>${l.qty}× ${l.name}</b>`;
-    if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.qty>1?"всяка с: ":""}${l.summary.join(", ")}</span>`;
+    if(l.garnishes&&l.garnishes.length)h+=` <span class="li-opt">+ ${lineGarnishNames(l)}</span>`;
+    else if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.qty>1?"всяка с: ":""}${l.summary.join(", ")}</span>`;
     if(l.note)h+=`<span class="li-note">📝 ${l.note}</span>`;
     return `<div class="ol-line">${h}</div>`;
   }).join("");
@@ -1027,7 +1028,7 @@ function cartPanel(){
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
       <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
-        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
+        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:""}${l.garnishes&&l.garnishes.length?`<span class="li-opt">+ ${lineGarnishNames(l)}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
         <div class="ob-total"><span>Общо за плащане</span><span>${moneyHTML(cartTotal())}</span></div></div></div>
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
@@ -1035,7 +1036,7 @@ function cartPanel(){
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
-        <div class="opts js-portion">${linePortionText(l)}</div>${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        <div class="opts js-portion">${linePortionText(l)}</div>${l.garnishes&&l.garnishes.length?`<div class="combo">${l.garnishes.map(g=>`<span class="combo-g">${g.emoji?g.emoji+" ":""}${g.name}${g.qty>1?" ×"+g.qty:""}</span>`).join("")}</div>`:""}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
