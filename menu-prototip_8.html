@@ -178,7 +178,9 @@
   .btn-primary{width:100%;border:none;border-radius:15px;background:linear-gradient(180deg,#e0673a,var(--ember));color:#fff;
     font-family:inherit;font-weight:700;font-size:15.5px;padding:16px;cursor:pointer;display:flex;align-items:center;
     justify-content:center;gap:10px;box-shadow:0 16px 30px -12px rgba(210,90,42,.85);transition:filter .2s,transform .12s,box-shadow .2s}
-  .btn-primary.split{justify-content:space-between}
+  .btn-primary.split{justify-content:space-between;gap:12px}
+  .btn-primary.split>span:first-child{text-align:left}
+  .btn-primary.split>span:last-child{white-space:nowrap;flex:0 0 auto;font-size:14.5px}
   .btn-primary:hover{filter:brightness(1.06)}
   .btn-primary:active{transform:scale(.99)}
   .btn-primary:disabled{background:rgba(60,42,30,.3);color:rgba(255,255,255,.8);box-shadow:none;cursor:not-allowed;filter:none}
@@ -905,7 +907,7 @@ function confirmView(){
       <div class="ob-h">🧾 Твоята поръчка</div>
       ${orderLinesHTML(o)}
       <div class="ob-meta"><span>⏰ За вземане: ${pickupText(o)}</span><span>${PAY_NOTE}</span></div>
-      <div class="ob-total"><span>Общо</span><span>${money(o.total)}</span></div></div>`:"";
+      <div class="ob-total"><span>Общо</span><span>${moneyHTML(o.total)}</span></div></div>`:"";
   return `<div class="confirm"><div class="confirm-top">Грил &amp; Бистро</div>
     <div class="check-circle">${done?'🎉':'✓'}</div>
     <h2>${done?'Поръчката е готова!':'Благодарим!'}</h2>
