@@ -249,6 +249,10 @@
   .cart-line .lt{font-family:'Golos Text',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;flex:0 0 auto}
   .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
   .cart-line .opts:empty{display:none}
+  /* Разбивка на групиран ред: етикет вляво, цена вдясно. */
+  .br{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:3px}
+  .br-l{min-width:0;overflow-wrap:anywhere}
+  .br-p{white-space:nowrap;flex:0 0 auto}
   .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
   .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
     background:rgba(255,255,255,.6);overflow:hidden}
@@ -758,8 +762,16 @@ function modalValid(){const it=state.modalItem;if(!it)return false;return (it.mo
 function garnishTotal(l){return (l.garnishes||[]).reduce((s,g)=>s+g.price*g.qty,0);}
 // Имена на гарнитурите за реда: „Снежанка ×2 · Зеле с моркови" (текст за Viber).
 function lineGarnishNames(l){return (l.garnishes||[]).map(g=>g.name+(g.qty>1?" ×"+g.qty:"")).join(" · ");}
-// Гарнитурите всяка на свой ред (кошница/обобщение/статус/кухня) — по-лесно се чете.
+// Гарнитурите всяка на свой ред (статус/кухня — без цени).
 function lineGarnishRows(l){return (l.garnishes||[]).map(g=>`<span class="li-opt">+ ${g.emoji?g.emoji+" ":""}${g.name}${g.qty>1?" ×"+g.qty:""}</span>`).join("");}
+// Разбивка на групиран ред: месо и всяка гарнитура на отделен ред със собствена цена.
+function lineBreakdownRows(l){
+  let rows=`<div class="br"><span class="br-l">${l.qty} × ${fmtNum(l.unit)} лв</span><span class="br-p">${moneyHTML(l.unit*l.qty)}</span></div>`;
+  (l.garnishes||[]).forEach(g=>{
+    rows+=`<div class="br"><span class="br-l">+ ${g.emoji?g.emoji+" ":""}${g.name}${g.qty>1?" ×"+g.qty:""}</span><span class="br-p">${moneyHTML(g.price*g.qty)}</span></div>`;
+  });
+  return rows;
+}
 function addToCart(){const it=state.modalItem;
   if(it.garnishable){
     // Един групиран ред: месо (брой × цена) + избраните гарнитури, всяка със свой брой.
@@ -798,6 +810,8 @@ function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
   document.querySelectorAll(".js-cart-count").forEach(e=>e.textContent=c);}
 function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
   l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty+garnishTotal(l);
+  // Комбо ред (с гарнитури) има разбивка по цени → пълен ре-рендер.
+  if(l.garnishes&&l.garnishes.length){persist();render();return;}
   const el=document.querySelector(`[data-line="${id}"]`);
   if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;
     const p=el.querySelector(".js-portion");if(p)p.textContent=linePortionText(l);updateTotalsUI();persist();}
@@ -1032,7 +1046,7 @@ function cartPanel(){
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
       <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
-        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:""}${lineGarnishRows(l)}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
+        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):(linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:"")}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
         <div class="ob-total"><span>Общо за плащане</span><span>${moneyHTML(cartTotal())}</span></div></div></div>
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
@@ -1040,7 +1054,7 @@ function cartPanel(){
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
-        <div class="opts js-portion">${linePortionText(l)}</div>${lineGarnishRows(l)}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        ${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):`<div class="opts js-portion">${linePortionText(l)}</div>`}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
