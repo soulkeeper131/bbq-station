@@ -99,6 +99,7 @@
     background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
     border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
   .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
   .add-fab{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid var(--glass-bd);
     display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--ember);font-weight:700;
     box-shadow:var(--shadow);flex:0 0 auto;align-self:center;transition:.15s}
@@ -116,6 +117,9 @@
     border-radius:26px 26px 0 0;display:flex;align-items:flex-end;padding:16px 20px;overflow:hidden}
   .sheet-hero .emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:70px;opacity:.92;
     filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
+  .sheet-hero.has-img{height:172px;background-size:cover;background-position:center}
+  .sheet-hero.has-img::before{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.6))}
   .sheet-hero h2{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:600;color:#fff;z-index:2;max-width:70%;
     text-shadow:0 2px 10px rgba(0,0,0,.25)}
   .sheet-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;
@@ -328,7 +332,17 @@
   .arow{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
   .arow:hover .arow-nm{color:var(--ember)}
   .arow .ico{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
-    border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
+    border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;overflow:hidden}
+  .arow .ico .ico-img{width:100%;height:100%;object-fit:cover;display:block}
+  .img-edit{display:flex;gap:14px;align-items:center;padding:2px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .img-prev{width:84px;height:84px;border-radius:14px;flex:0 0 auto;overflow:hidden;font-size:34px;
+    background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));border:1px solid var(--glass-bd);
+    display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+  .img-actions{flex:1;min-width:0}
+  .img-h{font-weight:700;font-size:13.5px;margin-bottom:8px}
+  .img-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .img-hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+  .link-btn.danger{color:#b3402a}
   .arow-body{flex:1;min-width:0}
   .arow-nm{font-weight:700;font-size:15px;transition:.15s}
   .arow-sub{font-size:12px;color:var(--muted);margin-top:2px}
@@ -488,7 +502,7 @@ const YanakAPI = {
 };
 
 const state={
-  mode:"client", groups:[], items:[], activeGroup:null,
+  mode:"client", groups:[], items:[], activeGroup:null, productImages:{},
   cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"",
   order:{name:"",phone:"",time:"asap"},
   orders:[], activeOrderId:null, autoSim:false,
@@ -567,6 +581,7 @@ async function boot(){
   state.groups=await YanakAPI.getGroups();
   state.items=await YanakAPI.getStocks();
   state.items.forEach(i=>{if(i.available===undefined)i.available=true;}); // Янак: може да идва от quantity или ръчен флаг
+  try{const r=await fetch("/api/product-images");if(r.ok)state.productImages=await r.json()||{};}catch(e){}
   const saved=store.read();
   if(saved&&saved.orders){state.orders=saved.orders;state.activeOrderId=saved.activeOrderId||null;}
   state.activeGroup=state.groups[0].id;
@@ -787,12 +802,16 @@ function header(){return `<header><div class="brand">
     <div><h1>Грил <span class="amp">&amp;</span> Бистро</h1><div class="sub">Поръчка за вземане · ул. Примерна 12</div></div>
     <button class="cart-btn" id="openCart"><span>Кошница</span>${cartCount()?`<span class="count js-cart-count">${cartCount()}</span>`:""}</button>
   </div></header>`;}
+function imgFor(it){return (it&&state.productImages[it.id])||null;}
+// Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
+function thumbInner(it){const u=imgFor(it);
+  return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy">`:`<span>${it.emoji||"🍽️"}</span>`;}
 function tabs(){return `<div class="tabs">${state.groups.map(g=>`<div class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</div>`).join("")}</div>`;}
 function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
     items.forEach(it=>{const hasOpt=(it.modifiers||[]).length>0;const sold=it.available===false;
-      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb"><span>${it.emoji||"🍽️"}</span></div>
+      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
         <div class="meta"><span class="price">${money(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
@@ -809,9 +828,9 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
         return `<div class="opt ${single?'':'check'} ${sel?'sel':''}" data-grp="${g.key}" data-opt="${o.id}" data-single="${single}">
           <div class="mark"></div><div class="lbl">${o.name}</div>
           <div class="delta">${o.delta>0?'+ '+money(o.delta):'включено'}</div></div>`;}).join("")}</div>`;});
-  const valid=modalValid();
+  const valid=modalValid();const heroImg=imgFor(it);
   return `<div class="scrim show" id="scrim"></div><div class="sheet" id="sheet">
-    <div class="sheet-hero"><span class="emoji">${it.emoji||"🍽️"}</span><h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
+    <div class="sheet-hero ${heroImg?'has-img':''}"${heroImg?` style="background-image:url('${heroImg}')"`:''}>${heroImg?'':`<span class="emoji">${it.emoji||"🍽️"}</span>`}<h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
     <div class="sheet-scroll">${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}
       <div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
         <textarea class="note-in" id="note" rows="2" placeholder="напр. без лук, добре опечено…">${state.modalNote}</textarea></div>
@@ -897,10 +916,10 @@ function adminView(){
 function adminProducts(){
   let out=`<div class="info-card"><span class="ic">ℹ️</span><div>
     <b>Имената, цените и категориите идват от Янак</b> (синхронизират се автоматично).
-    Тук управлявате <b>комбинациите</b> и можете бързо да <b>спрете/пуснете</b> ястие, ако се изчерпи.</div></div>`;
+    Тук управлявате <b>комбинациите</b> и <b>снимките</b>, и можете бързо да <b>спрете/пуснете</b> ястие, ако се изчерпи.</div></div>`;
   out+=`<div class="grid-admin">`;
   state.items.forEach(it=>{const has=(it.modifiers||[]).length>0;const on=it.available!==false;
-    out+=`<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico">${it.emoji||"🍽️"}</div>
+    out+=`<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico">${imgFor(it)?`<img class="ico-img" src="${imgFor(it)}" alt="">`:(it.emoji||"🍽️")}</div>
       <div class="arow-body"><div class="arow-nm">${it.name}</div>
         <div class="arow-sub">${money(it.basicPrice)} · ${has?(it.modifiers.length+' групи опции'):'без комбинации'}</div></div>
       <div class="switch ${on?'on':''}" data-toggle="${it.id}"><span class="sw-lbl">${on?'Наличен':'Изчерпан'}</span>
@@ -935,6 +954,42 @@ function draftAddOption(gi){state.adminDraft.modifiers[gi].options.push({id:uid(
 function draftRemoveOption(gi,oi){state.adminDraft.modifiers[gi].options.splice(oi,1);render();keepEditor();}
 function draftSetType(gi,val){const g=state.adminDraft.modifiers[gi];if(val==="single"){g.required=true;g.min=1;g.max=1;}else{g.required=false;g.min=0;g.max=5;}render();keepEditor();}
 function keepEditor(){document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");}
+// Смалява снимката в браузъра до разумен размер преди качване (бързо + приятно).
+function fileToResizedDataUrl(file,maxDim=800,quality=.82){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();const url=URL.createObjectURL(file);
+    img.onload=()=>{URL.revokeObjectURL(url);let w=img.width,h=img.height;
+      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
+      else if(h>=w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      resolve(c.toDataURL("image/jpeg",quality));};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("невалидна снимка"));};
+    img.src=url;});
+}
+async function uploadProductImage(productId,file){
+  try{
+    if(!/^image\//.test(file.type)) throw new Error("Файлът не е снимка");
+    const dataUrl=await fileToResizedDataUrl(file);
+    const r=await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({productId,dataUrl})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.url) throw new Error(j.error||"неуспешно качване");
+    state.productImages[productId]=j.url;
+    glog("admin:image:upload",{productId});
+    render();keepEditor();
+  }catch(e){glog("admin:image:error",{productId,error:String(e)});alert("Грешка при качване: "+e.message);}
+}
+async function removeProductImage(productId){
+  try{
+    await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({productId,dataUrl:null})});
+    delete state.productImages[productId];
+    glog("admin:image:remove",{productId});
+    render();keepEditor();
+  }catch(e){alert("Грешка: "+e.message);}
+}
+
 function saveEditor(){const d=state.adminDraft;const it=state.items.find(x=>x.id===d.productId);
   // изчистваме празни опции
   d.modifiers.forEach(g=>{g.options=g.options.filter(o=>o.name.trim()!=="");});
@@ -956,12 +1011,22 @@ function adminModal(){
         <div class="pricew">+<input class="odelta" data-gi="${gi}" data-oi="${oi}" type="number" step="0.10" value="${o.delta}">
           <span>лв</span></div><button class="del" data-delo="${gi}" data-oi2="${oi}">✕</button></div>`).join("")}
       <button class="addbtn" data-addo="${gi}">+ Добави опция</button></div>`;});
+  const imgD=state.productImages[d.productId]||null;
   return `<div class="scrim show" id="ascrim"></div>
     <div class="amodal" id="amodal">
       <div class="amodal-head"><div><h2>${d.emoji} ${d.name}</h2>
         <div class="ro">Име и цена (${money(d.basicPrice)}) се управляват в Янак · тук са комбинациите</div></div>
         <button class="sheet-close" id="aclose" style="position:static">✕</button></div>
-      <div class="amodal-scroll">${groups||`<p style="color:var(--muted);font-size:13.5px;padding:8px 0">Този продукт няма комбинации. Добави група, за да предложиш избор на гарнитура или добавки.</p>`}
+      <div class="amodal-scroll">
+        <div class="img-edit">
+          <div class="img-prev ${imgD?'has':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
+          <div class="img-actions"><div class="img-h">Снимка на продукта</div>
+            <div class="img-row"><label class="btn-ghost compact" for="imgUp">${imgD?'Смени снимка':'Качи снимка'}</label>
+              ${imgD?`<button class="link-btn danger" id="imgRm">Премахни</button>`:''}</div>
+            <input id="imgUp" type="file" accept="image/*" hidden>
+            <div class="img-hint">Ясна снимка на ястието — смалява се автоматично.</div></div>
+        </div>
+        ${groups||`<p style="color:var(--muted);font-size:13.5px;padding:8px 0">Този продукт няма комбинации. Добави група, за да предложиш избор на гарнитура или добавки.</p>`}
         <button class="addbtn group" id="addg">+ Добави нова група опции</button></div>
       <div class="amodal-foot"><button class="btn-ghost" id="acancel">Отказ</button>
         <button class="btn-primary compact" id="asave"><span>Запази промените</span></button></div></div>`;
@@ -1027,6 +1092,8 @@ function bindAdmin(){
   const acl=document.getElementById("aclose");if(acl)acl.onclick=closeEditor;
   const acan=document.getElementById("acancel");if(acan)acan.onclick=closeEditor;
   const asv=document.getElementById("asave");if(asv)asv.onclick=saveEditor;
+  const up=document.getElementById("imgUp");if(up)up.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)uploadProductImage(state.adminDraft.productId,f);};
+  const irm=document.getElementById("imgRm");if(irm)irm.onclick=()=>removeProductImage(state.adminDraft.productId);
   const addg=document.getElementById("addg");if(addg)addg.onclick=draftAddGroup;
   document.querySelectorAll("[data-delg]").forEach(b=>b.onclick=()=>draftRemoveGroup(+b.dataset.delg));
   document.querySelectorAll("[data-addo]").forEach(b=>b.onclick=()=>draftAddOption(+b.dataset.addo));
@@ -1038,7 +1105,7 @@ function bindAdmin(){
   document.querySelectorAll(".odelta").forEach(i=>i.oninput=e=>{state.adminDraft.modifiers[+e.target.dataset.gi].options[+e.target.dataset.oi].delta=parseFloat(e.target.value)||0;});
 }
 function updatePlace(){const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
-  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=!ready;btn.querySelector("span").textContent=ready?'Изпрати поръчката':'Попълни име и телефон';}}
+  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=!ready;btn.textContent=ready?'Изпрати поръчката':'Попълни име и телефон';}}
 
 boot();
 </script>

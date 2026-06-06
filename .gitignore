@@ -7,6 +7,9 @@ secrets.local.json
 _*.mjs
 _*.js
 
+# Локално хранилище за качени снимки (в продукция е persistent volume)
+data/
+
 # Node
 node_modules/
 npm-debug.log*

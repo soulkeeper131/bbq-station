@@ -5,8 +5,13 @@ FROM node:22-alpine
 
 ENV NODE_ENV=production
 ENV PORT=3000
+# Постоянно хранилище за качените снимки на продуктите.
+# В Coolify към този път се монтира persistent volume, за да оцеляват снимките при предеплой.
+ENV DATA_DIR=/data
 
 WORKDIR /app
+
+RUN mkdir -p /data/uploads
 
 # Копираме само нужните файлове за изпълнение.
 COPY package.json ./
