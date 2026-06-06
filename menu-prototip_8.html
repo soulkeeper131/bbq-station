@@ -765,9 +765,14 @@ function addToCart(){const it=state.modalItem;
   if(it.garnishable){
     // Един групиран ред: месо (брой × цена) + избраните гарнитури, всяка със свой брой.
     const garnishes=garnishItems().map(g=>({id:g.id,name:g.name,emoji:g.emoji,price:g.basicPrice,qty:state.modalGarnish[g.id]||0})).filter(g=>g.qty>0);
-    const gtot=garnishes.reduce((s,g)=>s+g.price*g.qty,0);
+    const gtot=garnishes.reduce((s,g)=>s+g.price*g.qty,0);const note=state.modalNote.trim();
+    // Чисто месо (без гарнитури и бележка) се слива в един ред → „2× Кюфте".
+    if(!garnishes.length&&!note){
+      const ex=state.cart.find(l=>l.itemId===it.id&&!(l.garnishes&&l.garnishes.length)&&!l.note);
+      if(ex){ex.qty+=state.modalQty;ex.lineTotal=ex.unit*ex.qty;closeSheet();return;}
+    }
     state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
-      sel:{},summary:[],garnishes,note:state.modalNote.trim(),qty:state.modalQty,unit:it.basicPrice,
+      sel:{},summary:[],garnishes,note,qty:state.modalQty,unit:it.basicPrice,
       lineTotal:it.basicPrice*state.modalQty+gtot});
     closeSheet();return;
   }
