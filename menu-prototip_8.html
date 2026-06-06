@@ -447,7 +447,9 @@
   .adv:disabled{opacity:.4;cursor:default}
 
   /* ============ DESKTOP ============ */
-  @media(min-width:860px){
+  /* Десктоп двуколонният изглед важи само за устройства с мишка (hover + fine pointer).
+     Таблетите (тъч) остават на чистия мобилен изглед, независимо от ширината. */
+  @media(min-width:860px) and (hover:hover) and (pointer:fine){
     .app{max-width:1140px;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
     /* На десктоп количката е страничен панел — НЕ заключваме скрола на страницата. */
     body.cart-open{overflow:auto}
