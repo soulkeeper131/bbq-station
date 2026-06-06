@@ -31,7 +31,7 @@ const res = await fetch(`https://${cfg.baseUrl}/viber/2/messages`, {
       {
         sender: cfg.sender,
         destinations: [{ to: cfg.to }],
-        content: { type: "TEXT", text: cfg.text || "Тест от Грил & Бистро ✅" },
+        content: { type: "TEXT", text: cfg.text || "Тест от BBQ Station ✅" },
       },
     ],
   }),
