@@ -27,6 +27,9 @@ function loadConfig() {
     baseUrl: process.env.INFOBIP_BASE_URL || fileCfg.baseUrl || "",
     apiKey: process.env.INFOBIP_API_KEY || fileCfg.apiKey || "",
     sender: process.env.INFOBIP_SENDER || fileCfg.sender || "",
+    // Публичният адрес на сайта — за да са верни тракинг линковете във Viber,
+    // независимо откъде се управлява поръчката (напр. localhost).
+    publicUrl: (process.env.PUBLIC_URL || fileCfg.publicUrl || "").replace(/\/+$/, ""),
   };
 }
 
@@ -80,6 +83,7 @@ const saveImagesIndex = () => {
 
 log("[boot]", `Viber ${viberReady ? "конфигуриран ✓" : "НЕ е конфигуриран ✗"} | sender=${cfg.sender || "—"} | host=${cfg.baseUrl || "—"}`);
 log("[boot]", `Снимки: ${Object.keys(productImages).length} в ${DATA_DIR}`);
+log("[boot]", `Публичен адрес за линкове: ${cfg.publicUrl || "— (ползва се origin-ът на клиента)"}`);
 if (!viberReady) {
   console.warn("⚠️  Viber не е конфигуриран (липсват INFOBIP_* / secrets.local.json). " +
     "Менюто ще работи, но реални съобщения няма да се пращат.");
@@ -213,11 +217,19 @@ const server = createServer(async (req, res) => {
     }
     const body = await readBody(req);
     try {
-      const { to, text } = JSON.parse(body || "{}");
-      if (!to || !text) {
+      const { to, text: rawText } = JSON.parse(body || "{}");
+      if (!to || !rawText) {
         log("[viber] 400 — липсва to/text");
         res.writeHead(400, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ error: "Required: to, text" }));
+      }
+      // Нормализираме тракинг линка към публичния домейн (иначе при управление
+      // от localhost клиентът получава нерабоещ localhost линк).
+      let text = rawText;
+      if (cfg.publicUrl) {
+        const before = text;
+        text = text.replace(/https?:\/\/[^/\s]+(?=\/\?track=)/g, cfg.publicUrl);
+        if (before !== text) log(`[viber] линкът е нормализиран към ${cfg.publicUrl}`);
       }
       log(`[viber] → изпращане към ${to} (${text.length} симв.):\n  ${text.replace(/\n/g, "\n  ")}`);
       const r = await fetch(`https://${cfg.baseUrl}/viber/2/messages`, {
