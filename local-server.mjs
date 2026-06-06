@@ -52,6 +52,10 @@ function readBody(req) {
   });
 }
 
+// Сървърно хранилище на поръчки (в паметта) — за да работи тракинг линкът
+// от друго устройство. Бел.: при рестарт/предеплой данните се губят (няма БД/volume).
+const orders = new Map();
+
 log("[boot]", `Viber ${viberReady ? "конфигуриран ✓" : "НЕ е конфигуриран ✗"} | sender=${cfg.sender || "—"} | host=${cfg.baseUrl || "—"}`);
 if (!viberReady) {
   console.warn("⚠️  Viber не е конфигуриран (липсват INFOBIP_* / secrets.local.json). " +
@@ -76,6 +80,39 @@ const server = createServer(async (req, res) => {
     }
     res.writeHead(204);
     return res.end();
+  }
+
+  // Поръчки: upsert (създаване/обновяване на статус) от клиента/кухнята.
+  if (req.method === "POST" && req.url === "/api/orders") {
+    const body = await readBody(req);
+    try {
+      const o = JSON.parse(body || "{}");
+      if (!o || o.docID === undefined || o.docID === null) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Required: docID" }));
+      }
+      const id = String(o.docID);
+      orders.set(id, { ...o, updatedAt: Date.now() });
+      log(`[orders] upsert #${id} | статус=${o.status}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true }));
+    } catch (e) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: String(e) }));
+    }
+  }
+
+  // Поръчка по номер → за страницата със статуса (тракинг линк).
+  if (req.method === "GET" && req.url.startsWith("/api/orders/")) {
+    const id = decodeURIComponent(req.url.slice("/api/orders/".length).split("?")[0]);
+    const o = orders.get(id);
+    if (!o) {
+      log(`[orders] GET #${id} → 404`);
+      res.writeHead(404, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "not found" }));
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify(o));
   }
 
   // Заявка за Viber → препраща към Infobip (ключът е само на сървъра).

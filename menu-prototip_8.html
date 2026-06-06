@@ -78,7 +78,7 @@
   .card .name{font-weight:700;font-size:16px;margin-bottom:3px;transition:color .15s}
   .card .desc{font-size:13px;color:var(--muted);line-height:1.45}
   .card .meta{display:flex;align-items:center;gap:10px;margin-top:9px}
-  .price{font-family:'Fraunces',serif;font-weight:600;font-size:16.5px;color:var(--ink)}
+  .price{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap}
   .badge-opt{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--olive);
     border:1px solid rgba(111,115,69,.4);padding:3px 8px;border-radius:999px;background:rgba(111,115,69,.08)}
   .badge-sold{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#b23a2b;
@@ -175,7 +175,7 @@
   .cart-line{padding:16px 0;border-bottom:1px solid var(--line)}
   .cart-line .top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
   .cart-line .nm{font-weight:700;font-size:15.5px;min-width:0;overflow-wrap:anywhere}
-  .cart-line .lt{font-family:'Fraunces',serif;font-weight:600;font-size:15.5px;white-space:nowrap;flex:0 0 auto}
+  .cart-line .lt{font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;flex:0 0 auto}
   .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
   .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
   .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
@@ -206,7 +206,7 @@
   .pay-note .ic{font-size:18px;flex:0 0 auto}
   .summary{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
   .summary .row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:9px;color:var(--muted)}
-  .summary .row.total{color:var(--ink);font-weight:700;font-size:18px;font-family:'Fraunces',serif;
+  .summary .row.total{color:var(--ink);font-weight:700;font-size:14.5px;font-family:'Hanken Grotesk',sans-serif;
     border-top:1px solid var(--line);padding-top:13px;margin-top:6px}
   /* Един формат на ред за поръчка — ползва се на „Благодарим" и в кухнята. */
   .li-opt{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
@@ -218,7 +218,7 @@
   .ob-h{font-family:'Fraunces',serif;font-weight:600;font-size:16px;padding:12px 0 4px}
   .ob-meta{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);padding:10px 0 0;
     border-top:1px solid var(--line);margin-top:8px}
-  .ob-total{display:flex;justify-content:space-between;font-family:'Fraunces',serif;font-weight:700;font-size:17px;
+  .ob-total{display:flex;justify-content:space-between;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:14.5px;
     padding-top:10px;margin-top:8px;border-top:1px solid var(--line)}
 
   .confirm{padding:40px 24px 30px;text-align:center;animation:fadein .5s ease;max-width:460px;margin:0 auto}
@@ -384,6 +384,8 @@
   /* ============ DESKTOP ============ */
   @media(min-width:860px){
     .app{max-width:1140px;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+    /* На десктоп количката е страничен панел — НЕ заключваме скрола на страницата. */
+    body.cart-open{overflow:auto}
     header{padding:20px 30px;border-radius:0}
     .brand h1{font-size:30px}
     .cart-btn{display:none}
@@ -529,6 +531,33 @@ async function sendViber(to,text){ if(!VIBER.endpoint||!to){glog("viber:skip",{t
   }
   catch(e){ glog("viber:error",{to,error:String(e)}); /* best-effort: демо нотификацията се показва дори при провал */ } }
 
+// ── Синхронизация на поръчките със сървъра (за тракинг линка от друго устройство) ──
+function saveOrderToServer(o){
+  try{fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(o),keepalive:true});}catch(e){}
+}
+async function fetchOrderFromServer(docID){
+  try{const r=await fetch("/api/orders/"+encodeURIComponent(docID));
+    if(!r.ok)return null;return await r.json();}catch(e){return null;}
+}
+// Докато клиентът гледа статуса (тракинг), периодично дърпаме промени от сървъра.
+let trackTimer=null;
+function startTrackPolling(docID){
+  stopTrackPolling();
+  trackTimer=setInterval(async()=>{
+    if(state.view!=="confirm"||state.activeOrderId!==docID){stopTrackPolling();return;}
+    const fresh=await fetchOrderFromServer(docID);
+    if(!fresh)return;
+    const o=state.orders.find(x=>x.docID===docID);
+    if(o&&(o.status!==fresh.status||(o.notifs||[]).length!==(fresh.notifs||[]).length)){
+      o.status=fresh.status;o.notifs=fresh.notifs||o.notifs;o.lines=fresh.lines||o.lines;
+      o.total=fresh.total??o.total;o.time=fresh.time??o.time;
+      glog("track:update",{docID,status:fresh.status});render();
+    }
+  },5000);
+}
+function stopTrackPolling(){if(trackTimer){clearInterval(trackTimer);trackTimer=null;}}
+
 async function boot(){
   if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";document.body.appendChild(t);}
   state.groups=await YanakAPI.getGroups();
@@ -539,9 +568,20 @@ async function boot(){
   state.activeGroup=state.groups[0].id;
   // Линк към статус: ?track=<docID> отваря екрана със статуса на поръчката.
   const trackId=Number(new URLSearchParams(location.search).get("track"));
-  if(trackId&&state.orders.some(o=>o.docID===trackId)){
-    state.tracking=true;state.activeOrderId=trackId;state.view="confirm";
-    glog("app:track-link",{docID:trackId});
+  if(trackId){
+    let local=state.orders.find(o=>o.docID===trackId);
+    if(!local){
+      // Не е на това устройство → дърпаме от сървъра (линкът от Viber работи навсякъде).
+      const fresh=await fetchOrderFromServer(trackId);
+      if(fresh){state.orders.unshift(fresh);local=fresh;}
+    }
+    if(local){
+      state.tracking=true;state.activeOrderId=trackId;state.view="confirm";
+      glog("app:track-link",{docID:trackId,source:"loaded"});
+      startTrackPolling(trackId);
+    } else {
+      glog("app:track-link",{docID:trackId,source:"not-found"});
+    }
   }
   glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
   render();
@@ -594,6 +634,7 @@ async function placeOrder(){
   glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
     lines:rec.lines.map(lineLabel),total:rec.total});
   state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
+  saveOrderToServer(rec);
   setStatus(res.docID,1);
 }
 let simTimer=null;
@@ -687,6 +728,7 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
       glog("notify:viber:skip",{docID,reason:"няма телефон"});
     }
   }
+  saveOrderToServer(o);
   persist();render();}
 function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
