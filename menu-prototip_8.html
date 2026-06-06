@@ -249,10 +249,6 @@
   .cart-line .lt{font-family:'Golos Text',sans-serif;font-weight:700;font-size:13px;white-space:nowrap;flex:0 0 auto}
   .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
   .cart-line .opts:empty{display:none}
-  /* Гарнитури, групирани към грил реда — малки чипове „кое с кое". */
-  .cart-line .combo{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-  .combo-g{font-size:12px;font-weight:600;color:var(--olive);background:rgba(111,115,69,.12);
-    border-radius:999px;padding:3px 10px;line-height:1.4}
   .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
   .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
     background:rgba(255,255,255,.6);overflow:hidden}
@@ -762,8 +758,8 @@ function modalValid(){const it=state.modalItem;if(!it)return false;return (it.mo
 function garnishTotal(l){return (l.garnishes||[]).reduce((s,g)=>s+g.price*g.qty,0);}
 // Имена на гарнитурите за реда: „Снежанка ×2 · Зеле с моркови" (текст за Viber).
 function lineGarnishNames(l){return (l.garnishes||[]).map(g=>g.name+(g.qty>1?" ×"+g.qty:"")).join(" · ");}
-// Гарнитурите всяка на свой ред (за обобщение/статус/кухня) — по-лесно се чете.
-function lineGarnishRows(l){return (l.garnishes||[]).map(g=>`<span class="li-opt">+ ${g.name}${g.qty>1?" ×"+g.qty:""}</span>`).join("");}
+// Гарнитурите всяка на свой ред (кошница/обобщение/статус/кухня) — по-лесно се чете.
+function lineGarnishRows(l){return (l.garnishes||[]).map(g=>`<span class="li-opt">+ ${g.emoji?g.emoji+" ":""}${g.name}${g.qty>1?" ×"+g.qty:""}</span>`).join("");}
 function addToCart(){const it=state.modalItem;
   if(it.garnishable){
     // Един групиран ред: месо (брой × цена) + избраните гарнитури, всяка със свой брой.
@@ -1044,7 +1040,7 @@ function cartPanel(){
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
-        <div class="opts js-portion">${linePortionText(l)}</div>${l.garnishes&&l.garnishes.length?`<div class="combo">${l.garnishes.map(g=>`<span class="combo-g">${g.emoji?g.emoji+" ":""}${g.name}${g.qty>1?" ×"+g.qty:""}</span>`).join("")}</div>`:""}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        <div class="opts js-portion">${linePortionText(l)}</div>${lineGarnishRows(l)}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
