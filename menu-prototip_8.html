@@ -77,7 +77,8 @@
     background:rgba(247,239,227,.85);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto;border:1px solid var(--glass-bd);background:rgba(255,255,255,.5);border-radius:999px;
-    padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;
+    padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;
+    white-space:nowrap;-webkit-appearance:none;appearance:none;
     display:inline-flex;align-items:center;justify-content:center;
     transition:transform .15s,background .18s,color .18s,border-color .18s,box-shadow .18s}
   .tab:hover{border-color:rgba(210,90,42,.55);color:var(--ember)}
@@ -86,6 +87,7 @@
   .tab.active:hover{color:var(--cream)}
 
   .menu{padding:8px 18px 120px}
+  [id^="grp-"]{scroll-margin-top:110px}
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
   .group-title small{font-family:'Golos Text';font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
@@ -1007,7 +1009,24 @@ function imgFor(it){return (it&&state.productImages[it.id])||null;}
 // Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
 function thumbInner(it){const u=imgFor(it);
   return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy">`:`<span>${it.emoji||"🍽️"}</span>`;}
-function tabs(){return `<div class="tabs">${state.groups.map(g=>`<div class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</div>`).join("")}</div>`;}
+function scrollToGroup(gid){
+  const el=document.getElementById("grp-"+gid);if(!el)return;
+  const tb=document.querySelector(".tabs");const db=document.querySelector(".demobar");
+  let margin=12;
+  if(tb){
+    const cs=getComputedStyle(tb);
+    const tabTop=cs.position==="sticky"?(parseFloat(cs.top)||0):0;
+    const tabH=tb.offsetHeight;
+    const dbH=db?db.offsetHeight:0;
+    margin=Math.max(dbH,tabTop+tabH)+12;
+  }
+  el.style.scrollMarginTop=margin+"px";
+  // scrollIntoView е по-надеждно от window.scrollTo; на десктоп — веднага (smooth често не скролва).
+  const instant=window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+  el.scrollIntoView({behavior:instant?"auto":"smooth",block:"start"});
+}
+function tabs(){return `<div class="tabs" role="tablist">${state.groups.map(g=>
+  `<button type="button" role="tab" class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</button>`).join("")}</div>`;}
 function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
@@ -1257,14 +1276,7 @@ function bindCommon(){
 }
 function bindClient(){
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{state.activeGroup=+t.dataset.g;
-    const el=document.getElementById("grp-"+t.dataset.g);
-    if(el){
-      // Спираме точно до заглавието — отчитаме „лепкавите" табове (на десктоп), за да не се крие отдолу.
-      const tb=document.querySelector(".tabs");const cs=tb?getComputedStyle(tb):null;
-      const stick=(cs&&cs.position==="sticky")?(tb.getBoundingClientRect().height+(parseFloat(cs.top)||0)):0;
-      const y=el.getBoundingClientRect().top+window.scrollY-stick-12;
-      window.scrollTo({top:y,behavior:"smooth"});
-    }
+    scrollToGroup(t.dataset.g);
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
   document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;
     const it=state.items.find(i=>i.id===+c.dataset.item);if(!it)return;
