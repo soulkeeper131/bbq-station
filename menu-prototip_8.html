@@ -180,6 +180,13 @@
   .opt-req{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
   .opt-req.req{background:var(--ember);color:#fff}
   .opt-req.optx{background:rgba(111,115,69,.16);color:var(--olive)}
+  .opt-change{border:1px solid var(--glass-bd);background:rgba(255,255,255,.6);color:var(--ember);font-weight:700;
+    font-size:12.5px;padding:5px 13px;border-radius:999px;cursor:pointer;transition:background .15s,border-color .15s}
+  .opt-change:hover{background:rgba(210,90,42,.1);border-color:rgba(210,90,42,.5)}
+  .opt-chosen{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--glass-bd);
+    border-radius:14px;background:rgba(255,255,255,.55);font-size:14.5px;font-weight:600}
+  .opt-chosen .cm-dot{width:18px;height:18px;border-radius:50%;flex:0 0 auto;background:var(--ember);
+    box-shadow:inset 0 0 0 3px #fff}
   .opt{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--glass-bd);border-radius:14px;
     margin-bottom:9px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.4)}
   .opt:hover{border-color:rgba(210,90,42,.5)}
@@ -519,10 +526,10 @@ const YanakAPI = {
     const SALADS=[["Боб с лютеница",1.20],["Снежанка",1.20],["Руска салата",1.20],
       ["Чеснова със сирене",1.20],["Кьопоолу",1.20],["Домати с краставици",1.20],["Зеле с моркови",0.60]];
     const garnish=(id)=>[
-      {key:"gar"+id,title:"Гарнитура (1 безплатна)",required:true,min:1,max:1,options:[
-        {id:"gn",name:"Без гарнитура",delta:0},
+      {key:"gar"+id,title:"Гарнитура (1 безплатна)",required:true,min:1,max:1,collapsible:true,options:[
+        {id:"gn",name:"Без гарнитура",delta:0,isNone:true},
         ...SALADS.map((s,i)=>({id:"g"+i,name:s[0],delta:0}))]},
-      {key:"xgar"+id,title:"Допълнителна гарнитура",required:false,min:0,max:6,
+      {key:"xgar"+id,title:"Допълнителна гарнитура",required:false,min:0,max:6,dependsOn:"gar"+id,
         options:SALADS.map((s,i)=>({id:"x"+i,name:s[0],delta:s[1]}))},
     ];
     return [
@@ -576,7 +583,7 @@ const YanakAPI = {
 
 const state={
   mode:"client", groups:[], items:[], activeGroup:null, productImages:{},
-  cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"",
+  cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"", modalExpand:{}, modalShown:false,
   order:{name:"",phone:"",time:"asap"},
   orders:[], activeOrderId:null, autoSim:false,
   tracking:false, trackInput:false, trackInputVal:"", trackErr:"",
@@ -723,16 +730,28 @@ const cartTotal=()=>state.cart.reduce((s,l)=>s+l.lineTotal,0);
 function lineUnit(item,sel){let p=item.basicPrice;(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))p+=o.delta;});});return p;}
 function selSummary(item,sel){const parts=[];(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))parts.push(o.name);});});return parts;}
 
-function openItem(item){state.modalItem=item;state.modalQty=1;state.modalNote="";state.modalSel={};render();
-  requestAnimationFrame(()=>{document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");});}
-function closeSheet(){document.getElementById("scrim")?.classList.remove("show");document.getElementById("sheet")?.classList.remove("show");
+function openItem(item){state.modalItem=item;state.modalQty=1;state.modalNote="";state.modalSel={};state.modalExpand={};state.modalShown=false;render();
+  requestAnimationFrame(()=>{state.modalShown=true;document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");});}
+function closeSheet(){state.modalShown=false;document.getElementById("scrim")?.classList.remove("show");document.getElementById("sheet")?.classList.remove("show");
   setTimeout(()=>{state.modalItem=null;render();},300);}
+// Ре-рендер на отворения лист (структурна промяна: свиване/показване на групи) без мигане.
+function refreshSheet(){render();}
 function keepSheetOpen(){document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");}
-function toggleOpt(k,id,single){const cur=state.modalSel[k]||[];
+function toggleOpt(k,id,single){const it=state.modalItem;const cur=state.modalSel[k]||[];
   state.modalSel[k]=single?[id]:(cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
+  const grp=(it&&it.modifiers||[]).find(g=>g.key===k);
+  if(grp&&grp.collapsible){
+    // Избор в свиваема група → свиваме дропдауна.
+    state.modalExpand[k]=false;
+    // „Без гарнитура“ → махаме всички зависими (допълнителни) гарнитури.
+    const pickedNone=grp.options.some(o=>o.isNone&&state.modalSel[k].includes(o.id));
+    if(pickedNone)(it.modifiers||[]).forEach(g=>{if(g.dependsOn===k)state.modalSel[g.key]=[];});
+    refreshSheet();return; // структурна промяна → пълен ре-рендер
+  }
   const chosen=state.modalSel[k];
   document.querySelectorAll(`.opt[data-grp="${k}"]`).forEach(el=>el.classList.toggle("sel",chosen.includes(el.dataset.opt)));
   updateModalFooter();}
+function expandGroup(k){state.modalExpand[k]=true;refreshSheet();}
 // Пояснение под „Брой порции“: при 2+ бройки гарнитурите се повтарят за всяка порция.
 function qtyHintText(){
   const it=state.modalItem;if(!it)return "";
@@ -958,6 +977,21 @@ function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id=
 function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="scrim"></div>`;
   const unit=lineUnit(it,state.modalSel);let groups="";
   (it.modifiers||[]).forEach(g=>{const single=g.max===1;const chosen=state.modalSel[g.key]||[];
+    // Зависима група (напр. „Допълнителна гарнитура“) се показва само ако е избрана
+    // реална гарнитура — при „Без гарнитура“ или липса на избор се скрива.
+    if(g.dependsOn){
+      const depGrp=(it.modifiers||[]).find(x=>x.key===g.dependsOn);const depSel=state.modalSel[g.dependsOn]||[];
+      const realDep=depSel.length>0 && depGrp && !depGrp.options.some(o=>o.isNone&&depSel.includes(o.id));
+      if(!realDep)return;
+    }
+    // Свиваема група с вече избрана стойност → компактен изглед + бутон „Смени“.
+    if(g.collapsible && chosen.length && !state.modalExpand[g.key]){
+      const chosenName=((g.options.find(o=>chosen.includes(o.id))||{}).name)||"";
+      groups+=`<div class="opt-group"><div class="opt-head"><h3>${g.title}</h3>
+        <button class="opt-change" data-expand="${g.key}">Смени</button></div>
+        <div class="opt-chosen"><span class="cm-dot"></span><span>${chosenName}</span></div></div>`;
+      return;
+    }
     groups+=`<div class="opt-group"><div class="opt-head"><h3>${g.title}</h3>
       <span class="opt-req ${g.required?'req':'optx'}">${g.required?'задължително':'по избор'}</span></div>
       ${g.options.map(o=>{const sel=chosen.includes(o.id);
@@ -965,7 +999,7 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
           <div class="mark"></div><div class="lbl">${o.name}</div>
           <div class="delta">${o.delta>0?'+ '+money(o.delta):'включено'}</div></div>`;}).join("")}</div>`;});
   const valid=modalValid();const heroImg=imgFor(it);
-  return `<div class="scrim show" id="scrim"></div><div class="sheet" id="sheet">
+  return `<div class="scrim show" id="scrim"></div><div class="sheet${state.modalShown?' show':''}" id="sheet">
     <div class="sheet-hero ${heroImg?'has-img':''}"${heroImg?` style="background-image:url('${heroImg}')"`:''}>${heroImg?'':`<span class="emoji">${it.emoji||"🍽️"}</span>`}<h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
     <div class="sheet-scroll">${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}
       <div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
@@ -1193,6 +1227,7 @@ function bindClient(){
   const cs=document.getElementById("closeSheet");if(cs)cs.onclick=closeSheet;
   const scrim=document.getElementById("scrim");if(scrim)scrim.onclick=closeSheet;
   document.querySelectorAll(".opt").forEach(o=>o.onclick=()=>toggleOpt(o.dataset.grp,o.dataset.opt,o.dataset.single==="true"));
+  document.querySelectorAll("[data-expand]").forEach(b=>b.onclick=()=>expandGroup(b.dataset.expand));
   const qm=document.getElementById("qminus");if(qm)qm.onclick=()=>{state.modalQty=Math.max(1,state.modalQty-1);updateModalFooter();};
   const qp=document.getElementById("qplus");if(qp)qp.onclick=()=>{state.modalQty++;updateModalFooter();};
   const note=document.getElementById("note");if(note)note.oninput=e=>{state.modalNote=e.target.value;};
