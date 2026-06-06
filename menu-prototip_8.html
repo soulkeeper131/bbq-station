@@ -510,18 +510,29 @@ const YanakAPI = {
   },
   async getStocks(){
     // Реално меню от обекта. Цените са в ЛЕВА. Грамажите при скарата са в сурово състояние.
+    // Гарнитури за скарата: 1 безплатна (вкл. „Без гарнитура"), всяка следваща — на цена.
+    // Цената на доп. гарнитура е колкото самата салата (салати 1.20, зеле 0.60).
+    const SALADS=[["Боб с лютеница",1.20],["Снежанка",1.20],["Руска салата",1.20],
+      ["Чеснова със сирене",1.20],["Кьопоолу",1.20],["Домати с краставици",1.20],["Зеле с моркови",0.60]];
+    const garnish=(id)=>[
+      {key:"gar"+id,title:"Гарнитура (1 безплатна)",required:true,min:1,max:1,options:[
+        {id:"gn",name:"Без гарнитура",delta:0},
+        ...SALADS.map((s,i)=>({id:"g"+i,name:s[0],delta:0}))]},
+      {key:"xgar"+id,title:"Допълнителна гарнитура",required:false,min:0,max:6,
+        options:SALADS.map((s,i)=>({id:"x"+i,name:s[0],delta:s[1]}))},
+    ];
     return [
-      // ── Скара ──
-      {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",modifiers:[]},
-      {id:102,groupID:1,name:"Кебапче",basicPrice:1.20,price:1.20,emoji:"🍢",description:"90 г · сурово тегло",modifiers:[]},
-      {id:103,groupID:1,name:"Свинска кълцаница",basicPrice:4.50,price:4.50,emoji:"🍖",description:"220 г · сурово тегло",modifiers:[]},
-      {id:104,groupID:1,name:"Телешка плескавица",basicPrice:3.60,price:3.60,emoji:"🍔",description:"200 г · сурово тегло",modifiers:[]},
-      {id:105,groupID:1,name:"Свинска пържола (врат)",basicPrice:4.60,price:4.60,emoji:"🥩",description:"Вратна · 250 г · сурово тегло",modifiers:[]},
-      {id:106,groupID:1,name:"Свински бекон",basicPrice:3.50,price:3.50,emoji:"🥓",description:"200 г · сурово тегло",modifiers:[]},
-      {id:107,groupID:1,name:"Пилешко филе",basicPrice:4.50,price:4.50,emoji:"🍗",description:"250 г · сурово тегло",modifiers:[]},
-      {id:108,groupID:1,name:"Пилешка пържола (бут)",basicPrice:4.50,price:4.50,emoji:"🍗",description:"Бутче · 250 г · сурово тегло",modifiers:[]},
-      {id:109,groupID:1,name:"Телешка наденица",basicPrice:2.40,price:2.40,emoji:"🌭",description:"125 г · сурово тегло",modifiers:[]},
-      {id:110,groupID:1,name:"Телешки адана кебап",basicPrice:2.60,price:2.60,emoji:"🍢",description:"100 г · сурово тегло",modifiers:[]},
+      // ── Скара (с избор на гарнитура) ──
+      {id:101,groupID:1,name:"Кюфте",basicPrice:1.20,price:1.20,emoji:"🧆",description:"90 г · сурово тегло",modifiers:garnish(101)},
+      {id:102,groupID:1,name:"Кебапче",basicPrice:1.20,price:1.20,emoji:"🍢",description:"90 г · сурово тегло",modifiers:garnish(102)},
+      {id:103,groupID:1,name:"Свинска кълцаница",basicPrice:4.50,price:4.50,emoji:"🍖",description:"220 г · сурово тегло",modifiers:garnish(103)},
+      {id:104,groupID:1,name:"Телешка плескавица",basicPrice:3.60,price:3.60,emoji:"🍔",description:"200 г · сурово тегло",modifiers:garnish(104)},
+      {id:105,groupID:1,name:"Свинска пържола (врат)",basicPrice:4.60,price:4.60,emoji:"🥩",description:"Вратна · 250 г · сурово тегло",modifiers:garnish(105)},
+      {id:106,groupID:1,name:"Свински бекон",basicPrice:3.50,price:3.50,emoji:"🥓",description:"200 г · сурово тегло",modifiers:garnish(106)},
+      {id:107,groupID:1,name:"Пилешко филе",basicPrice:4.50,price:4.50,emoji:"🍗",description:"250 г · сурово тегло",modifiers:garnish(107)},
+      {id:108,groupID:1,name:"Пилешка пържола (бут)",basicPrice:4.50,price:4.50,emoji:"🍗",description:"Бутче · 250 г · сурово тегло",modifiers:garnish(108)},
+      {id:109,groupID:1,name:"Телешка наденица",basicPrice:2.40,price:2.40,emoji:"🌭",description:"125 г · сурово тегло",modifiers:garnish(109)},
+      {id:110,groupID:1,name:"Телешки адана кебап",basicPrice:2.60,price:2.60,emoji:"🍢",description:"100 г · сурово тегло",modifiers:garnish(110)},
       // ── Салати (100 г) ──
       {id:201,groupID:2,name:"Боб с лютеница",basicPrice:1.20,price:1.20,emoji:"🫘",description:"100 г",modifiers:[]},
       {id:202,groupID:2,name:"Снежанка",basicPrice:1.20,price:1.20,emoji:"🥒",description:"100 г",modifiers:[]},
