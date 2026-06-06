@@ -948,9 +948,10 @@ function adminOrders(){
 /* admin editor for combinations */
 function openEditor(id){const it=state.items.find(x=>x.id===id);
   state.adminDraft={productId:id,name:it.name,emoji:it.emoji,basicPrice:it.basicPrice,
-    modifiers:JSON.parse(JSON.stringify(it.modifiers||[]))};render();
-  requestAnimationFrame(()=>{document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");});}
-function closeEditor(){document.getElementById("ascrim")?.classList.remove("show");document.getElementById("amodal")?.classList.remove("show");
+    modifiers:JSON.parse(JSON.stringify(it.modifiers||[]))};state.editorOpen=false;render();
+  // editorOpen=true гарантира, че всеки следващ render (симулация/polling) пази модала отворен.
+  requestAnimationFrame(()=>{state.editorOpen=true;document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");});}
+function closeEditor(){state.editorOpen=false;document.getElementById("ascrim")?.classList.remove("show");document.getElementById("amodal")?.classList.remove("show");
   setTimeout(()=>{state.adminDraft=null;render();},250);}
 function draftAddGroup(){state.adminDraft.modifiers.push({key:uid(),title:"Нова група",required:false,min:0,max:5,options:[{id:uid(),name:"",delta:0}]});render();keepEditor();}
 function draftRemoveGroup(gi){state.adminDraft.modifiers.splice(gi,1);render();keepEditor();}
@@ -1017,7 +1018,7 @@ function adminModal(){
       <button class="addbtn" data-addo="${gi}">+ Добави опция</button></div>`;});
   const imgD=state.productImages[d.productId]||null;
   return `<div class="scrim show" id="ascrim"></div>
-    <div class="amodal" id="amodal">
+    <div class="amodal${state.editorOpen?' show':''}" id="amodal">
       <div class="amodal-head"><div><h2>${d.emoji} ${d.name}</h2>
         <div class="ro">Име и цена (${money(d.basicPrice)}) се управляват в Янак · тук са комбинациите</div></div>
         <button class="sheet-close" id="aclose" style="position:static">✕</button></div>
