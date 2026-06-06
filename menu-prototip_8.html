@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Грил Бистро — Поръчка за вземане</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2c211a; --cream:#f7efe3; --cream-2:#efe3d2;
+    --ember:#d25a2a; --ember-dark:#b8481f; --olive:#6f7345; --gold:#d29a4e;
+    --muted:rgba(54,40,30,.64); --line:rgba(70,50,35,.14);
+    --glass:rgba(255,255,255,.7); --glass-2:rgba(255,255,255,.82); --glass-dark:rgba(255,255,255,.62);
+    --glass-bd:rgba(255,255,255,.85); --glass-bd-dk:rgba(70,50,35,.12);
+    --blur:saturate(150%) blur(16px); --shadow:0 20px 46px -22px rgba(18,11,6,.55);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
+    background:#f4ead9}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(60% 50% at 12% 8%, rgba(255,210,165,.85), transparent 60%),
+      radial-gradient(55% 45% at 90% 6%, rgba(255,232,196,.85), transparent 60%),
+      radial-gradient(60% 55% at 86% 94%, rgba(214,224,190,.7), transparent 62%),
+      radial-gradient(58% 52% at 10% 96%, rgba(255,202,172,.75), transparent 60%),
+      linear-gradient(140deg,#fcf5ec,#f3e8d6)}
+  button{font-family:inherit}
+
+  .demobar{position:sticky;top:0;z-index:70;background:rgba(255,255,255,.72);-webkit-backdrop-filter:var(--blur);
+    backdrop-filter:var(--blur);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:6px;
+    padding:8px 12px;font-size:12px;border-bottom:1px solid var(--glass-bd-dk)}
+  .demobar b{color:var(--ember);letter-spacing:.1em;text-transform:uppercase;font-size:10.5px;margin-right:6px}
+  .demobar .seg{display:flex;background:rgba(70,50,35,.08);border-radius:999px;padding:3px}
+  .demobar .seg button{border:none;background:none;color:var(--ink);font-size:12px;font-weight:600;padding:6px 14px;
+    border-radius:999px;cursor:pointer;opacity:.65;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+  .demobar .seg button.on{background:var(--ember);color:#fff;opacity:1}
+
+  /* ВАЖНО: без backdrop-filter тук на мобилно — иначе .app става containing block
+     за position:fixed елементите (количка/модал) и ги мести/отрязва спрямо страницата. */
+  .app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
+    background:rgba(247,239,227,.7)}
+  body.cart-open{overflow:hidden}
+
+  header{position:relative;z-index:40;background:rgba(255,255,255,.66);-webkit-backdrop-filter:var(--blur);
+    backdrop-filter:var(--blur);color:var(--ink);padding:16px 18px;border-bottom:1px solid var(--glass-bd-dk)}
+  .brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand h1{font-family:'Fraunces',serif;font-weight:900;font-size:25px;line-height:1;letter-spacing:-.01em}
+  .brand h1 .amp{color:var(--ember);font-style:italic;font-weight:500}
+  .brand .sub{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.02em}
+  .cart-btn{background:var(--ember);color:#fff;border:none;border-radius:999px;padding:11px 16px;font-weight:700;
+    font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 10px 22px -8px rgba(210,90,42,.7);transition:transform .15s,background .2s}
+  .cart-btn:hover{background:var(--ember-dark);transform:translateY(-1px)}
+  .cart-btn .count{background:#fff;color:var(--ember);border-radius:999px;min-width:20px;height:20px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;padding:0 5px}
+
+  .layout{display:block}
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:14px 18px 4px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;border:1px solid var(--glass-bd);background:rgba(255,255,255,.42);border-radius:999px;
+    padding:8px 15px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;transition:.18s;white-space:nowrap;
+    display:inline-flex;align-items:center;justify-content:center}
+  .tab:hover{border-color:rgba(210,90,42,.55)}
+  .tab.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+
+  .menu{padding:8px 18px 120px}
+  .group-title{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
+    display:flex;align-items:baseline;gap:10px}
+  .group-title small{font-family:'Hanken Grotesk';font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+  .grid{display:block}
+  .card{display:flex;gap:14px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--line);
+    cursor:pointer;transition:opacity .15s}
+  .card:hover .name{color:var(--ember)}
+  .card-body{flex:1;min-width:0}
+  .card .name{font-weight:700;font-size:16px;margin-bottom:3px;transition:color .15s}
+  .card .desc{font-size:13px;color:var(--muted);line-height:1.45}
+  .card .meta{display:flex;align-items:center;gap:10px;margin-top:9px}
+  .price{font-family:'Fraunces',serif;font-weight:600;font-size:16.5px;color:var(--ink)}
+  .badge-opt{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--olive);
+    border:1px solid rgba(111,115,69,.4);padding:3px 8px;border-radius:999px;background:rgba(111,115,69,.08)}
+  .badge-sold{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#b23a2b;
+    border:1px solid rgba(178,58,43,.4);padding:3px 8px;border-radius:999px;background:rgba(178,58,43,.08)}
+  .card.sold{opacity:.5;cursor:default}
+  .card.sold:hover .name{color:var(--ink)}
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;flex:0 0 auto}
+  .switch .track{width:42px;height:24px;border-radius:999px;background:rgba(60,42,30,.28);position:relative;transition:.2s;flex:0 0 auto}
+  .switch.on .track{background:var(--olive)}
+  .switch .knob{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;
+    transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch.on .knob{left:20px}
+  .switch .sw-lbl{font-size:11.5px;font-weight:700;min-width:54px;text-align:right}
+  .switch.on .sw-lbl{color:var(--olive)}
+  .switch:not(.on) .sw-lbl{color:#b23a2b}
+  .arow.sold .ico,.arow.sold .arow-nm{opacity:.5}
+  .card .thumb{width:74px;height:74px;border-radius:16px;flex:0 0 auto;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
+    border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+  .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .add-fab{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid var(--glass-bd);
+    display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--ember);font-weight:700;
+    box-shadow:var(--shadow);flex:0 0 auto;align-self:center;transition:.15s}
+  .card:hover .add-fab{background:var(--ember);color:#fff;border-color:var(--ember)}
+
+  .scrim{position:fixed;inset:0;background:rgba(20,12,8,.5);z-index:75;opacity:0;pointer-events:none;
+    transition:opacity .25s;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:50%;transform:translateX(-50%) translateY(102%);bottom:0;width:100%;max-width:520px;
+    z-index:76;background:rgba(247,239,227,.82);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:1px solid var(--glass-bd);border-bottom:none;border-radius:26px 26px 0 0;box-shadow:0 -16px 50px rgba(0,0,0,.4);
+    max-height:92dvh;display:flex;flex-direction:column;transition:transform .32s cubic-bezier(.22,1,.36,1),opacity .25s}
+  .sheet.show{transform:translateX(-50%) translateY(0)}
+  .sheet-hero{height:120px;background:linear-gradient(135deg,rgba(210,90,42,.5),rgba(210,154,78,.55));position:relative;
+    border-radius:26px 26px 0 0;display:flex;align-items:flex-end;padding:16px 20px;overflow:hidden}
+  .sheet-hero .emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:70px;opacity:.92;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
+  .sheet-hero h2{font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:#fff;z-index:2;max-width:70%;
+    text-shadow:0 2px 10px rgba(0,0,0,.25)}
+  .sheet-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;
+    background:rgba(255,255,255,.85);font-size:17px;line-height:1;cursor:pointer;z-index:3;color:var(--ink);
+    display:flex;align-items:center;justify-content:center}
+  .sheet-scroll{overflow-y:auto;overflow-x:hidden;padding:6px 20px 16px}
+  .sheet-desc{font-size:13.5px;color:var(--muted);line-height:1.5;margin:14px 0 6px}
+  .opt-group{margin-top:18px}
+  .opt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .opt-head h3{font-size:15px;font-weight:700}
+  .opt-req{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .opt-req.req{background:var(--ember);color:#fff}
+  .opt-req.optx{background:rgba(111,115,69,.16);color:var(--olive)}
+  .opt{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--glass-bd);border-radius:14px;
+    margin-bottom:9px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.4)}
+  .opt:hover{border-color:rgba(210,90,42,.5)}
+  .opt.sel{border-color:var(--ember);background:rgba(210,90,42,.1)}
+  .opt .mark{width:22px;height:22px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;transition:.15s}
+  .opt.check .mark{border-radius:7px}
+  .opt.sel .mark{border-color:var(--ember);background:var(--ember)}
+  .opt.sel .mark::after{content:"✓";color:#fff;font-size:13px;font-weight:800;line-height:1}
+  .opt .lbl{flex:1;font-size:14.5px;font-weight:500}
+  .opt .delta{font-size:13.5px;font-weight:700;color:var(--muted)}
+  .opt.sel .delta{color:var(--ember)}
+  .note-in{width:100%;border:1px solid var(--glass-bd);border-radius:14px;padding:12px 13px;font-family:inherit;
+    font-size:14px;margin-top:8px;resize:none;background:rgba(255,255,255,.5)}
+  .note-in:focus{outline:none;border-color:var(--ember)}
+  .qty-row{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+  .qty{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;background:rgba(255,255,255,.6);overflow:hidden}
+  .qty button{width:40px;height:40px;border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;transition:background .12s}
+  .qty button:hover{background:rgba(210,90,42,.1);color:var(--ember)}
+  .qty b{font-size:18px;min-width:30px;text-align:center;font-family:'Fraunces',serif}
+
+  .sheet-foot{padding:14px 20px max(22px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:transparent}
+  .btn-primary{width:100%;border:none;border-radius:15px;background:var(--ember);color:#fff;font-family:inherit;
+    font-weight:700;font-size:15.5px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    gap:10px;box-shadow:0 14px 28px -12px rgba(210,90,42,.8);transition:background .2s,transform .12s}
+  .btn-primary.split{justify-content:space-between}
+  .btn-primary:hover{background:var(--ember-dark)}
+  .btn-primary:active{transform:scale(.99)}
+  .btn-primary:disabled{background:rgba(60,42,30,.3);color:rgba(255,255,255,.8);box-shadow:none;cursor:not-allowed}
+
+  /* Мобилно: количката е плътна, цяла страница (без прозрачност, за да не се вижда менюто отдолу). */
+  .panel{position:fixed;top:0;right:50%;transform:translateX(50%) translateX(520px);width:100%;max-width:520px;
+    height:100dvh;z-index:80;background:var(--cream);
+    display:flex;flex-direction:column;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+  .panel.show{transform:translateX(50%)}
+  .panel-head{background:rgba(255,255,255,.55);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    color:var(--ink);padding:max(18px,env(safe-area-inset-top)) 20px 18px;display:flex;align-items:center;gap:14px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+  .panel-head .back{background:rgba(70,50,35,.08);border:none;color:var(--ink);width:36px;height:36px;
+    border-radius:50%;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .panel-head h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600}
+  .panel-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 20px}
+  .cart-line{padding:16px 0;border-bottom:1px solid var(--line)}
+  .cart-line .top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+  .cart-line .nm{font-weight:700;font-size:15.5px;min-width:0;overflow-wrap:anywhere}
+  .cart-line .lt{font-family:'Fraunces',serif;font-weight:600;font-size:15.5px;white-space:nowrap;flex:0 0 auto}
+  .cart-line .opts{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
+  .cart-line .ctrls{display:flex;align-items:center;gap:12px;margin-top:11px}
+  .cart-line .q{display:inline-flex;align-items:center;border:1px solid var(--glass-bd);border-radius:999px;
+    background:rgba(255,255,255,.6);overflow:hidden}
+  .cart-line .q button{width:34px;height:34px;border:none;background:none;font-size:19px;line-height:1;cursor:pointer;
+    color:var(--ink);display:flex;align-items:center;justify-content:center;transition:background .12s}
+  .cart-line .q button:hover{background:rgba(210,90,42,.1);color:var(--ember)}
+  .cart-line .q .qn{min-width:30px;text-align:center;font-family:'Fraunces',serif;font-size:16px}
+  .cart-line .rm{margin-left:auto;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;
+    text-decoration:underline;font-family:inherit;white-space:nowrap;flex:0 0 auto}
+  .amodal-scroll{overflow-x:hidden}
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty .big{font-size:50px;margin-bottom:14px;opacity:.5}
+
+  .field{margin-top:16px}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:var(--ink)}
+  .field input,.field select{width:100%;border:1px solid var(--glass-bd);border-radius:14px;padding:14px;
+    font-family:inherit;font-size:15px;background:rgba(255,255,255,.6)}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--ember)}
+  .time-opts{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .time-opt{border:1px solid var(--glass-bd);border-radius:14px;padding:13px;text-align:center;cursor:pointer;
+    font-weight:600;font-size:14px;background:rgba(255,255,255,.5);transition:.15s;
+    display:flex;align-items:center;justify-content:center}
+  .time-opt.sel{border-color:var(--ember);background:rgba(210,90,42,.1);color:var(--ember)}
+  .pay-note{display:flex;gap:11px;align-items:flex-start;background:rgba(111,115,69,.12);
+    border:1px solid rgba(111,115,69,.3);border-radius:14px;padding:13px;margin-top:18px;font-size:13px;
+    color:var(--ink);line-height:1.5}
+  .pay-note .ic{font-size:18px;flex:0 0 auto}
+  .summary{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
+  .summary .row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:9px;color:var(--muted)}
+  .summary .row.total{color:var(--ink);font-weight:700;font-size:18px;font-family:'Fraunces',serif;
+    border-top:1px solid var(--line);padding-top:13px;margin-top:6px}
+  /* Един формат на ред за поръчка — ползва се на „Благодарим" и в кухнята. */
+  .li-opt{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .li-note{display:block;font-weight:400;font-size:12.5px;color:var(--olive);margin-top:2px}
+  .ol-line{padding:9px 0;border-bottom:1px dashed var(--line);font-size:14.5px;text-align:left}
+  .ol-line:last-child{border-bottom:none}
+  .orderbox{text-align:left;background:rgba(255,255,255,.55);border:1px solid var(--glass-bd);border-radius:16px;
+    padding:6px 16px 14px;margin:18px 0 6px;box-shadow:var(--shadow)}
+  .ob-h{font-family:'Fraunces',serif;font-weight:600;font-size:16px;padding:12px 0 4px}
+  .ob-meta{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);padding:10px 0 0;
+    border-top:1px solid var(--line);margin-top:8px}
+  .ob-total{display:flex;justify-content:space-between;font-family:'Fraunces',serif;font-weight:700;font-size:17px;
+    padding-top:10px;margin-top:8px;border-top:1px solid var(--line)}
+
+  .confirm{padding:40px 24px 30px;text-align:center;animation:fadein .5s ease;max-width:460px;margin:0 auto}
+  @keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .check-circle{width:78px;height:78px;border-radius:50%;background:var(--olive);margin:0 auto 22px;display:flex;
+    align-items:center;justify-content:center;color:#fff;font-size:40px;line-height:1;box-shadow:0 16px 32px -10px rgba(111,115,69,.7);
+    animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+  .confirm h2{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin-bottom:8px}
+  .confirm .ordno{font-size:14px;color:var(--muted);margin-bottom:4px}
+  .confirm .ordno b{color:var(--ember)}
+  .vibebox{display:flex;gap:12px;align-items:center;text-align:left;background:rgba(255,255,255,.6);
+    border:1px solid var(--glass-bd);border-radius:16px;padding:15px;margin:24px 0 10px;box-shadow:var(--shadow)}
+  .vibebox .av{width:42px;height:42px;border-radius:12px;background:#7360f2;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:21px;line-height:1;flex:0 0 auto}
+  .vibebox .av.sms{background:#2e9e5b}
+  .vibebox .tx{font-size:13px;line-height:1.45}
+  .vibebox .tx b{display:block;margin-bottom:2px}
+  .stepper{display:flex;flex-direction:column;gap:0;text-align:left;margin:18px 4px 0}
+  .step{display:flex;gap:14px;align-items:flex-start;position:relative;padding-bottom:22px}
+  .step:last-child{padding-bottom:0}
+  .step .dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:rgba(255,255,255,.7);
+    flex:0 0 auto;z-index:2;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;transition:.3s}
+  .step:not(:last-child)::before{content:"";position:absolute;left:12px;top:26px;bottom:0;width:2px;background:var(--line)}
+  .step.done .dot{background:var(--olive);border-color:var(--olive);color:#fff}
+  .step.done:not(:last-child)::before{background:var(--olive)}
+  .step.active .dot{border-color:var(--ember);background:#fff;color:var(--ember);
+    box-shadow:0 0 0 4px rgba(210,90,42,.18);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(210,90,42,.18)}50%{box-shadow:0 0 0 7px rgba(210,90,42,.05)}}
+  .step .lbl-s{padding-top:2px}
+  .step .lbl-s b{font-size:14.5px;display:block}
+  .step .lbl-s span{font-size:12px;color:var(--muted)}
+  .step.pending .lbl-s{opacity:.45}
+  .sim-btn{background:rgba(255,255,255,.35);border:1px dashed var(--muted);color:var(--ink);border-radius:13px;padding:12px;
+    font-family:inherit;font-size:12.5px;cursor:pointer;width:100%;margin-top:14px;
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .link-btn{background:none;border:none;color:var(--ember);font-family:inherit;font-weight:700;font-size:14px;
+    cursor:pointer;margin-top:18px;text-decoration:underline}
+  .floatcart{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;
+    padding:14px 18px 20px;z-index:35;transition:transform .25s}
+  .floatcart.hide{transform:translateX(-50%) translateY(120%)}
+
+  #toasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;
+    gap:10px;width:344px;max-width:92vw;pointer-events:none}
+  .toast{display:flex;gap:11px;align-items:center;background:rgba(255,255,255,.85);-webkit-backdrop-filter:var(--blur);
+    backdrop-filter:var(--blur);border-radius:15px;padding:12px 14px;box-shadow:0 18px 44px -12px rgba(0,0,0,.45);
+    border:1px solid var(--glass-bd);opacity:0;transform:translateY(-16px);transition:.3s}
+  .toast.show{opacity:1;transform:none}
+  .toast .t-av{width:38px;height:38px;border-radius:11px;background:#7360f2;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:18px;line-height:1;flex:0 0 auto;font-weight:700}
+  .toast.sms .t-av{background:#2e9e5b}
+  .toast .t-tx{font-size:12.5px;line-height:1.4;color:var(--ink)}
+  .toast .t-tx b{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+  .confirm-top{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--muted);margin-bottom:22px;letter-spacing:.02em}
+  .nlog{text-align:left;margin-top:20px;border:1px solid var(--glass-bd);border-radius:15px;padding:0 14px;background:rgba(255,255,255,.5)}
+  .nlog-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:11px 0 8px;border-bottom:1px solid var(--line)}
+  .nlog-item{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .nlog-item:last-child{border-bottom:none}
+  .nlog-item .ch{font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;flex:0 0 auto}
+  .nlog-item .ch.viber{background:rgba(115,96,242,.16);color:#5b49d6}
+  .nlog-item .ch.sms{background:rgba(46,158,91,.16);color:#23774a}
+  .nlog-item .nt{flex:1;color:var(--ink);line-height:1.4}
+  .nlog-item .tm{color:var(--muted);font-size:11px}
+  .pill.s4{background:rgba(60,42,30,.12);color:var(--muted)}
+  .ord-notified{font-size:11.5px;color:var(--olive);width:100%;margin-top:6px}
+
+  .trackbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 18px 0;padding:13px 15px;
+    border-radius:16px;border:1px solid var(--glass-bd);background:rgba(255,255,255,.5)}
+  .trackbar.active{border-color:rgba(210,90,42,.45);background:rgba(210,90,42,.1)}
+  .trackbar .tb-l{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+  .tb-dot{width:11px;height:11px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .tb-dot.s1{background:var(--gold)}.tb-dot.s2{background:var(--ember)}.tb-dot.s3{background:var(--olive)}
+  .tb-tx b{display:block;font-size:13.5px}.tb-tx span{font-size:12px;color:var(--muted)}
+  .tb-btn{border:none;background:var(--ember);color:#fff;border-radius:999px;padding:9px 15px;font-family:inherit;
+    font-weight:700;font-size:13px;cursor:pointer;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
+  .tb-btn.ghost{background:rgba(255,255,255,.5);color:var(--ember);border:1px solid rgba(210,90,42,.45)}
+  .tb-input{display:flex;gap:8px;width:100%;margin-top:4px}
+  .tb-input input{flex:1;border:1px solid var(--glass-bd);border-radius:11px;padding:10px 12px;font-family:inherit;
+    font-size:14px;background:rgba(255,255,255,.7)}
+  .tb-input input:focus{outline:none;border-color:var(--ember)}
+  .tb-go{border:none;background:var(--ink);color:var(--cream);border-radius:11px;padding:0 16px;font-family:inherit;
+    font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .tb-err{font-size:12px;color:#b23a2b;width:100%;margin-top:2px;line-height:1.4}
+  .trackcode{text-align:left;margin-top:18px;border:1px dashed var(--line);border-radius:13px;padding:12px 14px;font-size:13px;background:rgba(255,255,255,.35)}
+  .trackcode b{color:var(--ember)}
+  .trackcode span{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+  /* ============ ADMIN ============ */
+  .admin{padding:0 0 60px}
+  .admin-head{padding:20px 18px 6px}
+  .admin-head h1{font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:var(--ink)}
+  .admin-head p{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .admin-wrap{background:rgba(247,239,227,.78);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    min-height:60vh;border-radius:24px 24px 0 0;padding:6px 18px 30px;margin-top:8px;border:1px solid var(--glass-bd);border-bottom:none}
+  .admin-tabs{display:flex;gap:8px;padding:16px 0 6px}
+  .admin-tabs button{border:1px solid var(--glass-bd);background:rgba(255,255,255,.45);border-radius:999px;
+    padding:9px 15px;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center}
+  .admin-tabs button.on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .info-card{display:flex;gap:11px;background:rgba(210,154,78,.16);border:1px solid rgba(210,154,78,.4);
+    border-radius:14px;padding:13px;font-size:12.5px;line-height:1.5;margin:8px 0 6px}
+  .info-card .ic{font-size:17px}
+  .arow{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .arow:hover .arow-nm{color:var(--ember)}
+  .arow .ico{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
+    border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
+  .arow-body{flex:1;min-width:0}
+  .arow-nm{font-weight:700;font-size:15px;transition:.15s}
+  .arow-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .tag.has{background:rgba(111,115,69,.16);color:var(--olive)}
+  .tag.plain{background:rgba(60,42,30,.08);color:var(--muted)}
+  .tag.yanak{background:rgba(210,90,42,.14);color:var(--ember)}
+  .chev{color:var(--muted);font-size:20px}
+
+  .amodal{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%) scale(.98);opacity:0;pointer-events:none;
+    width:560px;max-width:94vw;max-height:88vh;background:rgba(247,239,227,.92);-webkit-backdrop-filter:var(--blur);
+    backdrop-filter:var(--blur);border:1px solid var(--glass-bd);border-radius:22px;z-index:55;
+    display:flex;flex-direction:column;box-shadow:0 36px 80px -22px rgba(0,0,0,.55);transition:.25s}
+  .amodal.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+  .amodal-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .amodal-head h2{font-family:'Fraunces',serif;font-size:19px;font-weight:600}
+  .amodal-head .ro{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .amodal-scroll{overflow-y:auto;overflow-x:hidden;padding:16px 20px}
+  .amodal-foot{padding:14px 20px 18px;border-top:1px solid var(--line);display:flex;gap:10px}
+  .gcard{border:1px solid var(--glass-bd);border-radius:15px;padding:13px;margin-bottom:13px;background:rgba(255,255,255,.45)}
+  .gcard-top{display:flex;gap:9px;align-items:center;margin-bottom:10px}
+  .gcard-top input{flex:1;border:1px solid var(--glass-bd);border-radius:11px;padding:9px 11px;font-family:inherit;
+    font-size:14px;font-weight:600;background:rgba(255,255,255,.8)}
+  .gcard-top select{border:1px solid var(--glass-bd);border-radius:11px;padding:9px;font-family:inherit;font-size:12.5px;background:rgba(255,255,255,.8)}
+  .gcard-top .del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:17px;padding:4px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .orow{display:flex;gap:8px;align-items:center;margin-bottom:7px}
+  .orow input.onm{flex:1;border:1px solid var(--glass-bd);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:13.5px;background:rgba(255,255,255,.8)}
+  .orow .pricew{display:flex;align-items:center;gap:4px;border:1px solid var(--glass-bd);border-radius:10px;padding:0 10px;background:rgba(255,255,255,.8)}
+  .orow .pricew input{width:58px;border:none;padding:8px 0;font-family:inherit;font-size:13.5px;text-align:right;background:none}
+  .orow .pricew input:focus{outline:none}
+  .orow .pricew span{font-size:12px;color:var(--muted)}
+  .orow .del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
+  .addbtn{border:1px dashed var(--muted);background:rgba(255,255,255,.3);color:var(--ink);border-radius:11px;padding:10px;
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;
+    display:flex;align-items:center;justify-content:center;gap:5px}
+  .addbtn.group{margin-top:6px;border-color:var(--ember);color:var(--ember)}
+  .btn-ghost{flex:0 0 auto;border:1px solid var(--glass-bd);background:rgba(255,255,255,.6);border-radius:14px;padding:14px 18px;
+    font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;color:var(--ink);
+    display:inline-flex;align-items:center;justify-content:center}
+  .btn-primary.compact{padding:14px 18px;width:auto;flex:1}
+
+  .ordcard{border:1px solid var(--glass-bd);border-radius:16px;padding:15px;margin-bottom:13px;background:rgba(255,255,255,.5)}
+  .ordcard .oh{display:flex;justify-content:space-between;align-items:baseline}
+  .ordcard .oh b{font-family:'Fraunces',serif;font-size:17px}
+  .ordcard .who{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .ordcard .items{font-size:12.5px;color:var(--ink);margin-top:9px;line-height:1.55}
+  .statline{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .pill{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center}
+  .pill.s1{background:rgba(210,154,78,.2);color:#9a6b1e}
+  .pill.s2{background:rgba(210,90,42,.16);color:var(--ember)}
+  .pill.s3{background:rgba(111,115,69,.2);color:var(--olive)}
+  .adv{margin-left:auto;border:none;background:var(--ink);color:var(--cream);border-radius:999px;padding:9px 15px;
+    font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .adv:disabled{opacity:.4;cursor:default}
+
+  /* ============ DESKTOP ============ */
+  @media(min-width:860px){
+    .app{max-width:1140px;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+    header{padding:20px 30px;border-radius:0}
+    .brand h1{font-size:30px}
+    .cart-btn{display:none}
+    .layout{display:flex;gap:26px;align-items:flex-start;padding:18px 26px 0}
+    .main{flex:1;min-width:0;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+      border:1px solid var(--glass-bd);border-radius:22px;padding:2px 22px 16px;box-shadow:var(--shadow)}
+    .tabs{padding:16px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
+      -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -22px;padding-left:22px;padding-right:22px;border-radius:22px 22px 0 0}
+    .menu{padding:8px 0 24px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+    .floatcart{display:none}
+    .panel{position:sticky;top:46px;right:auto;left:auto;transform:none;width:366px;flex:0 0 366px;height:auto;z-index:1;
+      max-height:calc(100vh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:22px;
+      box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+    .panel.show{transform:none}
+    .panel-head{border-radius:22px 22px 0 0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;
+      color:var(--ink);border-bottom:1px solid var(--line);padding:15px 18px}
+    .panel-head h2{font-size:18px}
+    .panel-head .back{display:none}
+    .panel-head .back.show-d{display:flex;background:var(--line);color:var(--ink)}
+    .panel-scroll{min-height:0;flex:0 1 auto;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 240px);padding:6px 18px}
+    .cart-line{padding:14px 0}
+    .cart-line .ctrls{flex-wrap:nowrap}
+    .cart-line .rm{white-space:nowrap}
+    .empty{padding:46px 20px}
+    .sheet{left:50%;top:50%;bottom:auto;width:470px;max-width:92vw;max-height:86vh;border:1px solid var(--glass-bd);
+      border-radius:24px;transform:translate(-50%,-46%) scale(.97);opacity:0}
+    .sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+    .sheet-hero{border-radius:24px 24px 0 0}
+    .admin-wrap{max-width:900px;margin:18px auto 0;border-radius:22px;border:1px solid var(--glass-bd)}
+    .admin-head{max-width:900px;margin:0 auto}
+    .grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+    .trackbar{margin:0 0 4px}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ============================================================
+   СЛОЙ ДАННИ — оформен като API на Янак (api.eyanak.com).
+   getGroups / getStocks / createOrder повтарят реалните endpoint-и.
+   За интеграция: смяна на тялото им с fetch(), UI остава непокътнат.
+   Полето modifiers (комбинации) живее ОТ НАША страна — управлява се
+   в Администрация и при поръчка се превръща в редове/бележка към ордера.
+   ============================================================ */
+const YanakAPI = {
+  async getGroups(){
+    return [{id:1,name:"Скара"},{id:2,name:"Салати"},{id:3,name:"Гарнитури"},{id:4,name:"Напитки"}];
+  },
+  async getStocks(){
+    return [
+      {id:101,groupID:1,name:"Свинска пържола",basicPrice:14.90,price:14.90,emoji:"🥩",
+       description:"Сочна свинска вратна пържола на жар.",
+       modifiers:[
+         {key:"g101",title:"Гарнитура",required:true,min:1,max:1,options:[
+           {id:"o1",name:"Шопска салата",delta:0},{id:"o2",name:"Пържени картофи",delta:2.00},
+           {id:"o3",name:"Ориз със зеленчуци",delta:1.50},{id:"o4",name:"Печени зеленчуци",delta:2.50}]},
+         {key:"a101",title:"Добавки",required:false,min:0,max:3,options:[
+           {id:"o5",name:"Чеснов сос",delta:1.00},{id:"o6",name:"Гъбен сос",delta:2.00},
+           {id:"o7",name:"Допълнително месо 100г",delta:5.00}]}]},
+      {id:102,groupID:1,name:"Пилешко филе на скара",basicPrice:12.50,price:12.50,emoji:"🍗",
+       description:"Крехко пилешко филе, лимон и риган.",
+       modifiers:[
+         {key:"g102",title:"Гарнитура",required:true,min:1,max:1,options:[
+           {id:"o1",name:"Зелена салата",delta:0},{id:"o2",name:"Пържени картофи",delta:2.00},
+           {id:"o3",name:"Ориз със зеленчуци",delta:1.50}]},
+         {key:"a102",title:"Добавки",required:false,min:0,max:3,options:[
+           {id:"o4",name:"Млечен сос",delta:1.00},{id:"o5",name:"Лютив сос",delta:1.00}]}]},
+      {id:103,groupID:1,name:"Свински ребра",basicPrice:18.90,price:18.90,emoji:"🍖",
+       description:"Бавно печени ребра с BBQ глазура.",
+       modifiers:[
+         {key:"g103",title:"Гарнитура",required:true,min:1,max:1,options:[
+           {id:"o1",name:"Пържени картофи",delta:2.00},{id:"o2",name:"Печени зеленчуци",delta:2.50},
+           {id:"o3",name:"Картофено пюре",delta:2.00}]}]},
+      {id:201,groupID:2,name:"Шопска салата",basicPrice:6.90,price:6.90,emoji:"🥗",description:"Домати, краставици, чушки, сирене.",modifiers:[]},
+      {id:202,groupID:2,name:"Овчарска салата",basicPrice:8.50,price:8.50,emoji:"🧀",description:"Шунка, гъби, яйце, кашкавал.",modifiers:[]},
+      {id:203,groupID:2,name:"Цезар салата",basicPrice:9.90,price:9.90,emoji:"🥬",description:"Айсберг, пиле, пармезан, крутони.",
+       modifiers:[{key:"a203",title:"Добавки",required:false,min:0,max:2,options:[
+           {id:"o1",name:"Допълнително пиле",delta:3.00},{id:"o2",name:"Анчоа",delta:1.50}]}]},
+      {id:301,groupID:3,name:"Пържени картофи",basicPrice:4.50,price:4.50,emoji:"🍟",description:"С морска сол.",modifiers:[]},
+      {id:302,groupID:3,name:"Картофено пюре",basicPrice:4.00,price:4.00,emoji:"🥔",description:"Кремообразно, с масло.",modifiers:[]},
+      {id:303,groupID:3,name:"Печени зеленчуци",basicPrice:5.50,price:5.50,emoji:"🥦",description:"Сезонни, на грил.",modifiers:[]},
+      {id:401,groupID:4,name:"Айран",basicPrice:2.00,price:2.00,emoji:"🥛",description:"Студен, домашен.",modifiers:[]},
+      {id:402,groupID:4,name:"Натурална лимонада",basicPrice:3.50,price:3.50,emoji:"🍋",description:"С прясна мента.",modifiers:[]},
+      {id:403,groupID:4,name:"Кока-Кола 330мл",basicPrice:2.80,price:2.80,emoji:"🥤",description:"",modifiers:[]},
+      {id:404,groupID:4,name:"Бира наливна 500мл",basicPrice:4.00,price:4.00,emoji:"🍺",description:"",modifiers:[]},
+    ];
+  },
+  async createOrder(payload){
+    await new Promise(r=>setTimeout(r,650));
+    console.log("→ ЯНАК POST /e-shop/api/order:",payload);
+    return {docID:Math.floor(10000+Math.random()*89999)};
+  },
+};
+
+const state={
+  mode:"client", groups:[], items:[], activeGroup:null,
+  cart:[], view:"menu", modalItem:null, modalSel:{}, modalQty:1, modalNote:"",
+  order:{name:"",phone:"",time:"asap"},
+  orders:[], activeOrderId:null, autoSim:false,
+  tracking:false, trackInput:false, trackInputVal:"", trackErr:"",
+  adminTab:"products", adminDraft:null,
+};
+// Валута: показваме едновременно евро и лева (фиксиран курс 1 € = 1,95583 лв).
+// Цените в данните са в ЛЕВА; еврото се изчислява от тях.
+const EUR_RATE=1.95583;
+const fmtNum=n=>n.toFixed(2).replace(".",",");
+const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
+const root=document.getElementById("root");
+const uid=()=>"o"+Math.random().toString(36).slice(2,7);
+
+// Локално запомняне на поръчки на това устройство. В реалната версия статусът
+// се освежава от Янак (GET /order по docID); тук пазим записа за демото.
+// try/catch — за да не чупи, ако средата блокира localStorage.
+const store={
+  read(){try{const r=localStorage.getItem("gb_orders");return r?JSON.parse(r):null;}catch(e){return null;}},
+  write(o){try{localStorage.setItem("gb_orders",JSON.stringify(o));}catch(e){}}
+};
+function persist(){store.write({orders:state.orders.slice(0,10),activeOrderId:state.activeOrderId});}
+
+// Реален Viber през Vercel backend-а (Infobip). Смени endpoint-а, ако проектът е друг.
+// Доставя реално само ако backend-ът е качен с env променливите, а в trial — номерът е верифициран.
+const VIBER={ endpoint:"/api/send-viber", appToken:"" };
+function normalizePhone(p){let d=(p||"").replace(/[^\d]/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="359"+d.slice(1);return d;}
+
+// Единен логинг: пише в конзолата на браузъра И праща към сървъра (/api/log),
+// за да виждаме целия timeline на едно място — дори при тест от телефон.
+function glog(tag,data){
+  try{console.log("%c[GB] "+tag,"color:#d25a2a;font-weight:700",data??"");}catch(e){}
+  try{fetch("/api/log",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tag,data}),keepalive:true});}catch(e){}
+}
+
+async function sendViber(to,text){ if(!VIBER.endpoint||!to){glog("viber:skip",{to,reason:"няма endpoint/телефон"});return;}
+  try{
+    const r=await fetch(VIBER.endpoint,{method:"POST",
+      headers:{"Content-Type":"application/json",...(VIBER.appToken?{"x-app-token":VIBER.appToken}:{})},
+      body:JSON.stringify({to,text})});
+    const body=await r.text().catch(()=>"");
+    glog("viber:result",{to,httpStatus:r.status,ok:r.ok,response:body.slice(0,300)});
+  }
+  catch(e){ glog("viber:error",{to,error:String(e)}); /* best-effort: демо нотификацията се показва дори при провал */ } }
+
+async function boot(){
+  if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";document.body.appendChild(t);}
+  state.groups=await YanakAPI.getGroups();
+  state.items=await YanakAPI.getStocks();
+  state.items.forEach(i=>{if(i.available===undefined)i.available=true;}); // Янак: може да идва от quantity или ръчен флаг
+  const saved=store.read();
+  if(saved&&saved.orders){state.orders=saved.orders;state.activeOrderId=saved.activeOrderId||null;}
+  state.activeGroup=state.groups[0].id;
+  // Линк към статус: ?track=<docID> отваря екрана със статуса на поръчката.
+  const trackId=Number(new URLSearchParams(location.search).get("track"));
+  if(trackId&&state.orders.some(o=>o.docID===trackId)){
+    state.tracking=true;state.activeOrderId=trackId;state.view="confirm";
+    glog("app:track-link",{docID:trackId});
+  }
+  glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
+  render();
+}
+const cartCount=()=>state.cart.reduce((s,l)=>s+l.qty,0);
+const cartTotal=()=>state.cart.reduce((s,l)=>s+l.lineTotal,0);
+function lineUnit(item,sel){let p=item.basicPrice;(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))p+=o.delta;});});return p;}
+function selSummary(item,sel){const parts=[];(item.modifiers||[]).forEach(g=>{const c=sel[g.key]||[];g.options.forEach(o=>{if(c.includes(o.id))parts.push(o.name);});});return parts;}
+
+function openItem(item){state.modalItem=item;state.modalQty=1;state.modalNote="";state.modalSel={};render();
+  requestAnimationFrame(()=>{document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");});}
+function closeSheet(){document.getElementById("scrim")?.classList.remove("show");document.getElementById("sheet")?.classList.remove("show");
+  setTimeout(()=>{state.modalItem=null;render();},300);}
+function keepSheetOpen(){document.getElementById("scrim")?.classList.add("show");document.getElementById("sheet")?.classList.add("show");}
+function toggleOpt(k,id,single){const cur=state.modalSel[k]||[];
+  state.modalSel[k]=single?[id]:(cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
+  const chosen=state.modalSel[k];
+  document.querySelectorAll(`.opt[data-grp="${k}"]`).forEach(el=>el.classList.toggle("sel",chosen.includes(el.dataset.opt)));
+  updateModalFooter();}
+function updateModalFooter(){const it=state.modalItem;if(!it)return;
+  const unit=lineUnit(it,state.modalSel),valid=modalValid();
+  const qb=document.querySelector(".sheet .qty b");if(qb)qb.textContent=state.modalQty;
+  const btn=document.getElementById("addCart");if(btn){btn.disabled=!valid;
+    const s=btn.querySelectorAll("span");
+    if(s[0])s[0].textContent=valid?'Добави в кошницата':'Избери задължителните опции';
+    if(s[1])s[1].textContent=money(unit*state.modalQty);}}
+function modalValid(){const it=state.modalItem;if(!it)return false;return (it.modifiers||[]).every(g=>{const c=(state.modalSel[g.key]||[]).length;return c>=(g.min||0)&&(!g.required||c>=1);});}
+function addToCart(){const it=state.modalItem;const unit=lineUnit(it,state.modalSel);
+  state.cart.push({lineId:Date.now()+Math.random(),itemId:it.id,name:it.name,emoji:it.emoji,
+    sel:JSON.parse(JSON.stringify(state.modalSel)),summary:selSummary(it,state.modalSel),
+    note:state.modalNote.trim(),qty:state.modalQty,unit,lineTotal:unit*state.modalQty});closeSheet();}
+function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
+  document.querySelectorAll(".js-cart-total").forEach(e=>e.textContent=t);
+  document.querySelectorAll(".js-cart-count").forEach(e=>e.textContent=c);}
+function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
+  l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty;
+  const el=document.querySelector(`[data-line="${id}"]`);
+  if(el){el.querySelector(".lt").textContent=money(l.lineTotal);el.querySelector(".qn").textContent=l.qty;updateTotalsUI();persist();}
+  else{persist();render();}}
+function removeLine(id){state.cart=state.cart.filter(x=>x.lineId!==id);persist();render();}
+
+async function placeOrder(){
+  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=true;btn.querySelector("span").textContent="Изпращане…";}
+  const payload={type:"takeaway",customer:{name:state.order.name,phone:state.order.phone},pickup:state.order.time,
+    lines:state.cart.map(l=>({stockId:l.itemId,qty:l.qty,unitPrice:l.unit,options:l.summary,note:l.note})),total:cartTotal()};
+  glog("order:submit",payload);
+  const res=await YanakAPI.createOrder(payload);
+  const rec={docID:res.docID,name:state.order.name,phone:state.order.phone,time:state.order.time,
+    lines:state.cart.map(l=>({name:l.name,qty:l.qty,summary:l.summary,note:l.note})),total:cartTotal(),status:0,notifs:[]};
+  glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
+    lines:rec.lines.map(lineLabel),total:rec.total});
+  state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
+  setStatus(res.docID,1);
+}
+let simTimer=null;
+const nowHM=()=>{const d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);};
+// ── ЕДИН ИЗТОЧНИК НА ИСТИНА ЗА СЪДЪРЖАНИЕТО НА ПОРЪЧКАТА ──
+// Едни и същи редове се ползват навсякъде: кошница, екран „Благодарим",
+// Viber съобщение и изгледа на кухнята (Администрация). Така няма разминаване.
+
+const PAY_NOTE="💳 Плащане само на място — с карта или в брой.";
+
+// Час за вземане в човешки вид.
+function pickupText(o){
+  if(!o.time||o.time==="asap")return "възможно най-скоро (15–20 мин)";
+  return "след "+o.time+" мин";
+}
+// Един ред от поръчката като чист текст: „2× Име (опции) — бел.: …".
+function lineLabel(l){
+  let line=l.qty+"× "+l.name;
+  if(l.summary&&l.summary.length)line+=" ("+l.summary.join(", ")+")";
+  if(l.note)line+=" — бел.: "+l.note;
+  return line;
+}
+// Списък за текстово съобщение (Viber/SMS).
+function orderLinesText(o){return (o.lines||[]).map(l=>"• "+lineLabel(l)).join("\n");}
+// Същият списък за HTML (екран на клиента и кухнята).
+function orderLinesHTML(o){
+  return (o.lines||[]).map(l=>{
+    let h=`<b>${l.qty}× ${l.name}</b>`;
+    if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.summary.join(", ")}</span>`;
+    if(l.note)h+=`<span class="li-note">📝 ${l.note}</span>`;
+    return `<div class="ol-line">${h}</div>`;
+  }).join("");
+}
+
+// Канал + кратък етикет за toast/лога.
+// Линк към страницата със статуса на конкретната поръчка.
+function statusLink(o){return location.origin+"/?track="+o.docID;}
+function statusInfo(s){
+  // Известията минават през Viber (реалният канал).
+  // Статус 2 („приготвя се") НЕ праща съобщение — само сменя статуса.
+  if(s===1)return{channel:"viber",toast:"Получихме поръчката ти ✅"};
+  if(s===3)return{channel:"viber",toast:"Готова за вземане ✅ Заповядай!"};
+  return null;
+}
+// Пълният текст, който РЕАЛНО се изпраща (и се показва на клиента 1:1).
+function messageFor(o,s){
+  if(s===1){
+    return [
+      "Здравей"+(o.name?", "+o.name:"")+"! 🍽️",
+      "Получихме поръчката ти #"+o.docID+".",
+      "",
+      "🧾 Поръчано:",
+      orderLinesText(o),
+      "",
+      "Общо: "+money(o.total),
+      "⏰ За вземане: "+pickupText(o),
+      PAY_NOTE,
+      "",
+      "🔗 Проследи статуса: "+statusLink(o),
+    ].join("\n");
+  }
+  if(s===3){
+    return [
+      "Поръчка #"+o.docID+" е ГОТОВА за вземане ✅",
+      "⏰ Заповядай да я вземеш ("+pickupText(o)+").",
+      PAY_NOTE,
+      "",
+      "🔗 Детайли: "+statusLink(o),
+    ].join("\n");
+  }
+  return "";
+}
+function toast(e){const wrap=document.getElementById("toasts");if(!wrap)return;
+  const el=document.createElement("div");el.className="toast "+e.channel;
+  el.innerHTML=`<div class="t-av">${e.channel==='sms'?'✉':'V'}</div><div class="t-tx"><b>${e.channel==='sms'?'SMS':'Viber'} → #${e.docID}</b>${e.toast}</div>`;
+  wrap.appendChild(el);requestAnimationFrame(()=>el.classList.add("show"));
+  setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.remove(),320);},4200);}
+const STATUS_NAME=["","приета","приготвя се","готова за вземане","взета"];
+function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)return;o.status=s;
+  const inf=statusInfo(s);
+  glog("order:status",{docID,status:s,statusName:STATUS_NAME[s]||String(s),channel:inf?inf.channel:"—"});
+  if(inf){
+    // text = точният текст, който се праща (показва се 1:1 в лога и на екрана).
+    const e={channel:inf.channel,toast:inf.toast,text:messageFor(o,s),docID,time:nowHM()};
+    o.notifs.push(e);toast(e);
+    if(o.phone){
+      const phone=normalizePhone(o.phone);
+      glog("notify:viber",{docID,to:phone,text:e.text});
+      sendViber(phone,e.text);
+    } else {
+      glog("notify:viber:skip",{docID,reason:"няма телефон"});
+    }
+  }
+  persist();render();}
+function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";render();}
+function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
+function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0;
+  const next=()=>{if(!state.autoSim||state.activeOrderId!==docID)return;
+    if(i>=steps.length){state.autoSim=false;render();return;}
+    setStatus(docID,steps[i]);i++;simTimer=setTimeout(next,2000);};
+  simTimer=setTimeout(next,1700);}
+function stopSim(){state.autoSim=false;clearTimeout(simTimer);}
+
+function render(){
+  const sy=window.scrollY;
+  const grab=s=>{const e=document.querySelector(s);return e?e.scrollTop:0;};
+  const psT=grab(".panel-scroll"),ssT=grab(".sheet-scroll"),asT=grab(".amodal-scroll");
+  if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+adminModal();bindCommon();bindAdmin();}
+  else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`;bindCommon();bindConfirm();}
+  else{root.innerHTML=demobar()+`<div class="app">`+header()+
+    `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div>`+cartPanel()+`</div>`+
+    floatCart()+sheet()+`</div>`;bindCommon();bindClient();}
+  document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
+  window.scrollTo(0,sy);
+  const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
+  set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
+  requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);});
+}
+
+function trackBanner(){
+  const active=state.orders.find(o=>o.status<4);
+  const labels=["","приета","приготвя се","готова за вземане","взета"];
+  let row;
+  if(active){
+    row=`<div class="tb-l"><span class="tb-dot s${active.status}"></span>
+      <div class="tb-tx"><b>Активна поръчка #${active.docID}</b><span>статус: ${labels[active.status]}</span></div></div>
+      <button class="tb-btn" data-track="${active.docID}">Виж статуса →</button>`;
+  } else {
+    row=`<div class="tb-l"><span class="tb-dot s0"></span>
+      <div class="tb-tx"><b>Имаш номер на поръчка?</b><span>Провери статуса по всяко време</span></div></div>
+      <button class="tb-btn ghost" id="trackToggle">Проследи →</button>`;
+  }
+  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. 12345" value="${state.trackInputVal||''}" inputmode="numeric">
+    <button class="tb-go" id="trackGo">Провери</button></div>${state.trackErr?`<div class="tb-err">${state.trackErr}</div>`:''}`:'';
+  return `<div class="trackbar ${active?'active':''}">${row}${inp}</div>`;
+}
+
+function demobar(){return `<div class="demobar"><b>Демо</b>
+  <div class="seg">
+    <button class="${state.mode==='client'?'on':''}" data-mode="client">🍽️ Клиент</button>
+    <button class="${state.mode==='admin'?'on':''}" data-mode="admin">⚙️ Администрация</button>
+  </div></div>`;}
+
+function header(){return `<header><div class="brand">
+    <div><h1>Грил <span class="amp">&amp;</span> Бистро</h1><div class="sub">Поръчка за вземане · ул. Примерна 12</div></div>
+    <button class="cart-btn" id="openCart"><span>Кошница</span>${cartCount()?`<span class="count js-cart-count">${cartCount()}</span>`:""}</button>
+  </div></header>`;}
+function tabs(){return `<div class="tabs">${state.groups.map(g=>`<div class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</div>`).join("")}</div>`;}
+function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
+    const items=state.items.filter(i=>i.groupID===g.id);
+    out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
+    items.forEach(it=>{const hasOpt=(it.modifiers||[]).length>0;const sold=it.available===false;
+      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb"><span>${it.emoji||"🍽️"}</span></div>
+        <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
+        <div class="meta"><span class="price">${money(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
+        ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
+    out+=`</div></div>`;});return out+`</div>`;}
+function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id="floatcart">
+    <button class="btn-primary" id="openCart2"><span>Виж кошницата · <span class="js-cart-count">${cartCount()}</span> ${cartCount()===1?'продукт':'продукта'}</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
+
+function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="scrim"></div>`;
+  const unit=lineUnit(it,state.modalSel);let groups="";
+  (it.modifiers||[]).forEach(g=>{const single=g.max===1;const chosen=state.modalSel[g.key]||[];
+    groups+=`<div class="opt-group"><div class="opt-head"><h3>${g.title}</h3>
+      <span class="opt-req ${g.required?'req':'optx'}">${g.required?'задължително':'по избор'}</span></div>
+      ${g.options.map(o=>{const sel=chosen.includes(o.id);
+        return `<div class="opt ${single?'':'check'} ${sel?'sel':''}" data-grp="${g.key}" data-opt="${o.id}" data-single="${single}">
+          <div class="mark"></div><div class="lbl">${o.name}</div>
+          <div class="delta">${o.delta>0?'+ '+money(o.delta):'включено'}</div></div>`;}).join("")}</div>`;});
+  const valid=modalValid();
+  return `<div class="scrim show" id="scrim"></div><div class="sheet" id="sheet">
+    <div class="sheet-hero"><span class="emoji">${it.emoji||"🍽️"}</span><h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
+    <div class="sheet-scroll">${it.description?`<div class="sheet-desc">${it.description}</div>`:""}${groups}
+      <div class="opt-group"><div class="opt-head"><h3>Забележка към кухнята</h3></div>
+        <textarea class="note-in" id="note" rows="2" placeholder="напр. без лук, добре опечено…">${state.modalNote}</textarea></div>
+      <div class="qty-row"><span style="font-weight:700">Количество</span>
+        <div class="qty"><button id="qminus">−</button><b>${state.modalQty}</b><button id="qplus">+</button></div></div></div>
+    <div class="sheet-foot"><button class="btn-primary split" id="addCart" ${valid?'':'disabled'}>
+      <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(unit*state.modalQty)}</span></button></div></div>`;}
+
+function cartPanel(){
+  const show=(state.view==="cart"||state.view==="checkout");let inner="";let title="Твоята кошница";let backCls="";
+  if(state.view==="checkout"){
+    title="Данни за вземане";backCls="show-d";const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
+    inner=`<div class="panel-scroll">
+      <div class="field"><label>Име за поръчката</label><input id="f-name" value="${o.name}" placeholder="напр. Иван"></div>
+      <div class="field"><label>Телефон за нотификация</label><input id="f-phone" value="${o.phone}" placeholder="+359 ..." inputmode="tel"></div>
+      <div class="field"><label>Кога ще вземете поръчката?</label><div class="time-opts">
+        <div class="time-opt ${o.time==='asap'?'sel':''}" data-time="asap">Възможно най-скоро</div>
+        <div class="time-opt ${o.time==='30'?'sel':''}" data-time="30">След 30 мин</div>
+        <div class="time-opt ${o.time==='45'?'sel':''}" data-time="45">След 45 мин</div>
+        <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
+      <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
+      <div class="summary">${state.cart.map(l=>`<div class="row"><span>${l.qty}× ${l.name}${l.summary&&l.summary.length?` <span class="li-opt">${l.summary.join(", ")}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</span><span>${money(l.lineTotal)}</span></div>`).join("")}
+        <div class="row total"><span>Общо</span><span>${money(cartTotal())}</span></div></div></div>
+      <div class="sheet-foot"><button class="btn-primary split" id="placeBtn" ${ready?'':'disabled'}>
+        <span>${ready?'Изпрати поръчката':'Попълни име и телефон'}</span><span>${money(cartTotal())}</span></button></div>`;
+  } else {
+    if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
+    else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
+        <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${money(l.lineTotal)}</div></div>
+        ${l.summary.length?`<div class="opts">+ ${l.summary.join(" · ")}</div>`:""}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
+          <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
+      <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
+  }
+  return `<div class="panel ${show?'show':''}" id="panel"><div class="panel-head">
+      <button class="back ${backCls}" id="panelBack">‹</button><h2>${title}</h2></div>${inner}</div>`;
+}
+
+function confirmView(){
+  const o=state.orders.find(x=>x.docID===state.activeOrderId)||{docID:"—",name:"",total:0,status:1,lines:[],notifs:[]};
+  const steps=[{t:"Поръчката е приета",s:"Ресторантът я получи в Янак"},{t:"Приготвя се",s:"Кухнята работи по нея"},{t:"Готова за вземане",s:"Заповядай да я вземеш!"}];
+  const stepsHtml=steps.map((st,i)=>{const idx=i+1;let cls=idx<o.status?"done":idx===o.status?"active":"pending";
+    return `<div class="step ${cls}"><div class="dot">${idx<o.status?'✓':idx}</div><div class="lbl-s"><b>${st.t}</b><span>${st.s}</span></div></div>`;}).join("");
+  const done=o.status>=3;
+  const last=o.notifs&&o.notifs.length?o.notifs[o.notifs.length-1]:null;
+  const logHtml=(o.notifs||[]).map(n=>`<div class="nlog-item"><span class="ch ${n.channel}">${n.channel==='viber'?'Viber':'SMS'}</span>
+     <span class="nt">${n.toast||n.text}</span><span class="tm">${n.time}</span></div>`).join("");
+  const orderBox=(o.lines&&o.lines.length)?`<div class="orderbox">
+      <div class="ob-h">🧾 Твоята поръчка</div>
+      ${orderLinesHTML(o)}
+      <div class="ob-meta"><span>⏰ За вземане: ${pickupText(o)}</span><span>${PAY_NOTE}</span></div>
+      <div class="ob-total"><span>Общо</span><span>${money(o.total)}</span></div></div>`:"";
+  return `<div class="confirm"><div class="confirm-top">Грил &amp; Бистро</div>
+    <div class="check-circle">${done?'🎉':'✓'}</div>
+    <h2>${done?'Поръчката е готова!':'Благодарим!'}</h2>
+    <div class="ordno">Номер на поръчка: <b>#${o.docID}</b></div>
+    <div class="ordno">за ${o.name||'клиент'}</div>
+    ${orderBox}
+    <div class="vibebox"><div class="av ${last&&last.channel==='sms'?'sms':''}">${last&&last.channel==='sms'?'✉':'V'}</div>
+      <div class="tx"><b>${last?((last.channel==='sms'?'SMS':'Viber')+' до '+(o.phone||'клиента')):'Известие'}</b>${last?(last.toast||last.text):'Ще получиш Viber/SMS при промяна на статуса.'}</div></div>
+    <div class="stepper">${stepsHtml}</div>
+    ${o.notifs&&o.notifs.length?`<div class="nlog"><div class="nlog-h">Изпратени известия</div>${logHtml}</div>`:""}
+    <div class="trackcode">Код за проследяване: <b>#${o.docID}</b><span>Запази го — линкът към статуса е и в твоето Viber/SMS известие, така че можеш да се върнеш по всяко време.</span></div>
+    ${!done?`<button class="btn-primary" id="autoSim" ${state.autoSim?'disabled':''} style="margin-top:18px">
+        <span>${state.autoSim?'⏳ Симулира се…':'▶ Пусни демо на целия път'}</span></button>
+      <button class="sim-btn" id="sim" ${state.autoSim?'disabled':''}>→ Само една стъпка напред</button>`:""}
+    ${state.tracking?`<button class="link-btn" id="backMenu">← Обратно към менюто</button>`:`<button class="link-btn" id="newOrder">Нова поръчка</button>`}</div>`;
+}
+
+/* ---------------- ADMIN ---------------- */
+function adminView(){
+  return `<div class="admin"><div class="admin-head"><h1>Администрация</h1>
+      <p>Грил &amp; Бистро · управление на менюто и поръчките</p></div>
+    <div class="admin-wrap">
+      <div class="admin-tabs">
+        <button class="${state.adminTab==='products'?'on':''}" data-atab="products">Продукти и комбинации</button>
+        <button class="${state.adminTab==='orders'?'on':''}" data-atab="orders">Входящи поръчки${state.orders.filter(o=>o.status<3).length?' ('+state.orders.filter(o=>o.status<3).length+')':''}</button>
+      </div>
+      ${state.adminTab==='products'?adminProducts():adminOrders()}
+    </div></div>`;
+}
+function adminProducts(){
+  let out=`<div class="info-card"><span class="ic">ℹ️</span><div>
+    <b>Имената, цените и категориите идват от Янак</b> (синхронизират се автоматично).
+    Тук управлявате <b>комбинациите</b> и можете бързо да <b>спрете/пуснете</b> ястие, ако се изчерпи.</div></div>`;
+  out+=`<div class="grid-admin">`;
+  state.items.forEach(it=>{const has=(it.modifiers||[]).length>0;const on=it.available!==false;
+    out+=`<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico">${it.emoji||"🍽️"}</div>
+      <div class="arow-body"><div class="arow-nm">${it.name}</div>
+        <div class="arow-sub">${money(it.basicPrice)} · ${has?(it.modifiers.length+' групи опции'):'без комбинации'}</div></div>
+      <div class="switch ${on?'on':''}" data-toggle="${it.id}"><span class="sw-lbl">${on?'Наличен':'Изчерпан'}</span>
+        <span class="track"><span class="knob"></span></span></div>
+      <span class="chev">›</span></div>`;});
+  return out+`</div>`;
+}
+function adminOrders(){
+  if(!state.orders.length) return `<div class="empty"><div class="big">📋</div>Все още няма поръчки.<br>Направи една от изгледа „Клиент", за да се появи тук.</div>`;
+  const labels=["","Приета","Приготвя се","Готова за вземане","Взета"];
+  const pillCls=["","s1","s2","s3","s4"];
+  const advText=["","▶ Започни приготвяне","✓ Маркирай готова","📦 Маркирай взета",""];
+  return state.orders.map(o=>`<div class="ordcard">
+    <div class="oh"><b>#${o.docID}</b><span style="font-family:'Fraunces',serif;font-weight:600">${money(o.total)}</span></div>
+    <div class="who">${o.name||'клиент'} · ${o.phone||'—'} · ⏰ ${pickupText(o)}</div>
+    <div class="items">${orderLinesHTML(o)}</div>
+    <div class="statline"><span class="pill ${pillCls[o.status]}">${labels[o.status]}</span>
+      ${o.status<4?`<button class="adv" data-adv="${o.docID}">${advText[o.status]}</button>`:`<span style="font-size:12px;color:var(--muted);margin-left:auto">✓ завършена</span>`}
+      ${o.status>=3&&o.status<4?`<span class="ord-notified">✓ клиентът получи нотификация „готова за вземане"</span>`:''}</div></div>`).join("");
+}
+
+/* admin editor for combinations */
+function openEditor(id){const it=state.items.find(x=>x.id===id);
+  state.adminDraft={productId:id,name:it.name,emoji:it.emoji,basicPrice:it.basicPrice,
+    modifiers:JSON.parse(JSON.stringify(it.modifiers||[]))};render();
+  requestAnimationFrame(()=>{document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");});}
+function closeEditor(){document.getElementById("ascrim")?.classList.remove("show");document.getElementById("amodal")?.classList.remove("show");
+  setTimeout(()=>{state.adminDraft=null;render();},250);}
+function draftAddGroup(){state.adminDraft.modifiers.push({key:uid(),title:"Нова група",required:false,min:0,max:5,options:[{id:uid(),name:"",delta:0}]});render();keepEditor();}
+function draftRemoveGroup(gi){state.adminDraft.modifiers.splice(gi,1);render();keepEditor();}
+function draftAddOption(gi){state.adminDraft.modifiers[gi].options.push({id:uid(),name:"",delta:0});render();keepEditor();}
+function draftRemoveOption(gi,oi){state.adminDraft.modifiers[gi].options.splice(oi,1);render();keepEditor();}
+function draftSetType(gi,val){const g=state.adminDraft.modifiers[gi];if(val==="single"){g.required=true;g.min=1;g.max=1;}else{g.required=false;g.min=0;g.max=5;}render();keepEditor();}
+function keepEditor(){document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");}
+function saveEditor(){const d=state.adminDraft;const it=state.items.find(x=>x.id===d.productId);
+  // изчистваме празни опции
+  d.modifiers.forEach(g=>{g.options=g.options.filter(o=>o.name.trim()!=="");});
+  it.modifiers=d.modifiers.filter(g=>g.options.length>0);closeEditor();}
+
+function adminModal(){
+  const d=state.adminDraft;if(!d)return `<div class="scrim" id="ascrim"></div>`;
+  let groups="";d.modifiers.forEach((g,gi)=>{
+    const type=(g.required&&g.max===1)?"single":"multi";
+    groups+=`<div class="gcard">
+      <div class="gcard-top">
+        <input class="gtitle" data-gi="${gi}" value="${g.title.replace(/"/g,'&quot;')}" placeholder="Име на групата">
+        <select class="gtype" data-gi="${gi}">
+          <option value="single" ${type==='single'?'selected':''}>избор на 1 (задължит.)</option>
+          <option value="multi" ${type==='multi'?'selected':''}>няколко (по избор)</option></select>
+        <button class="del" data-delg="${gi}">🗑</button></div>
+      ${g.options.map((o,oi)=>`<div class="orow">
+        <input class="onm" data-gi="${gi}" data-oi="${oi}" value="${o.name.replace(/"/g,'&quot;')}" placeholder="Опция (напр. Пържени картофи)">
+        <div class="pricew">+<input class="odelta" data-gi="${gi}" data-oi="${oi}" type="number" step="0.10" value="${o.delta}">
+          <span>лв</span></div><button class="del" data-delo="${gi}" data-oi2="${oi}">✕</button></div>`).join("")}
+      <button class="addbtn" data-addo="${gi}">+ Добави опция</button></div>`;});
+  return `<div class="scrim show" id="ascrim"></div>
+    <div class="amodal" id="amodal">
+      <div class="amodal-head"><div><h2>${d.emoji} ${d.name}</h2>
+        <div class="ro">Име и цена (${money(d.basicPrice)}) се управляват в Янак · тук са комбинациите</div></div>
+        <button class="sheet-close" id="aclose" style="position:static">✕</button></div>
+      <div class="amodal-scroll">${groups||`<p style="color:var(--muted);font-size:13.5px;padding:8px 0">Този продукт няма комбинации. Добави група, за да предложиш избор на гарнитура или добавки.</p>`}
+        <button class="addbtn group" id="addg">+ Добави нова група опции</button></div>
+      <div class="amodal-foot"><button class="btn-ghost" id="acancel">Отказ</button>
+        <button class="btn-primary compact" id="asave"><span>Запази промените</span></button></div></div>`;
+}
+
+/* ---------------- BINDINGS ---------------- */
+function bindCommon(){
+  document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{stopSim();state.mode=b.dataset.mode;render();});
+}
+function bindClient(){
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{state.activeGroup=+t.dataset.g;
+    document.getElementById("grp-"+t.dataset.g)?.scrollIntoView({behavior:"smooth",block:"start"});
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
+  document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;const it=state.items.find(i=>i.id===+c.dataset.item);if(it)openItem(it);});
+  const oc=document.getElementById("openCart");if(oc)oc.onclick=()=>{state.view="cart";render();};
+  const oc2=document.getElementById("openCart2");if(oc2)oc2.onclick=()=>{state.view="cart";render();};
+  const cs=document.getElementById("closeSheet");if(cs)cs.onclick=closeSheet;
+  const scrim=document.getElementById("scrim");if(scrim)scrim.onclick=closeSheet;
+  document.querySelectorAll(".opt").forEach(o=>o.onclick=()=>toggleOpt(o.dataset.grp,o.dataset.opt,o.dataset.single==="true"));
+  const qm=document.getElementById("qminus");if(qm)qm.onclick=()=>{state.modalQty=Math.max(1,state.modalQty-1);updateModalFooter();};
+  const qp=document.getElementById("qplus");if(qp)qp.onclick=()=>{state.modalQty++;updateModalFooter();};
+  const note=document.getElementById("note");if(note)note.oninput=e=>{state.modalNote=e.target.value;};
+  const ac=document.getElementById("addCart");if(ac)ac.onclick=addToCart;
+  const pb=document.getElementById("panelBack");if(pb)pb.onclick=()=>{state.view=(state.view==="checkout")?"cart":"menu";render();};
+  document.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>changeQtyCart(+b.dataset.inc,1));
+  document.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>changeQtyCart(+b.dataset.dec,-1));
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeLine(+b.dataset.rm));
+  const tc=document.getElementById("toCheckout");if(tc)tc.onclick=()=>{state.view="checkout";render();};
+  const fn=document.getElementById("f-name");if(fn)fn.oninput=e=>{state.order.name=e.target.value;updatePlace();};
+  const fp=document.getElementById("f-phone");if(fp)fp.oninput=e=>{state.order.phone=e.target.value;updatePlace();};
+  document.querySelectorAll(".time-opt").forEach(t=>t.onclick=()=>{state.order.time=t.dataset.time;render();});
+  const pl=document.getElementById("placeBtn");if(pl)pl.onclick=placeOrder;
+  document.querySelectorAll("[data-track]").forEach(b=>b.onclick=()=>trackOrder(+b.dataset.track));
+  const tt=document.getElementById("trackToggle");if(tt)tt.onclick=()=>{state.trackInput=true;render();};
+  const tn=document.getElementById("trackNum");if(tn)tn.oninput=e=>{state.trackInputVal=e.target.value;};
+  const tg=document.getElementById("trackGo");if(tg)tg.onclick=()=>{const n=parseInt(state.trackInputVal,10);
+    const o=state.orders.find(x=>x.docID===n);
+    if(o){trackOrder(n);}else{state.trackErr="Поръчка #"+(state.trackInputVal||"?")+" не е намерена на това устройство. В реалната версия линкът от известието я зарежда от Янак.";render();}};
+}
+function bindConfirm(){
+  const o=state.orders.find(x=>x.docID===state.activeOrderId);
+  const sim=document.getElementById("sim");if(sim)sim.onclick=()=>{if(o&&o.status<3)setStatus(o.docID,o.status+1);};
+  const auto=document.getElementById("autoSim");if(auto)auto.onclick=()=>{if(o)runAutoSim(o.docID);};
+  const bm=document.getElementById("backMenu");if(bm)bm.onclick=()=>{state.tracking=false;state.view="menu";render();};
+  const no=document.getElementById("newOrder");if(no)no.onclick=()=>{stopSim();state.cart=[];state.view="menu";
+    state.order={name:"",phone:"",time:"asap"};state.activeOrderId=null;state.tracking=false;persist();render();};
+}
+function bindAdmin(){
+  document.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{state.adminTab=b.dataset.atab;render();});
+  document.querySelectorAll("[data-edit]").forEach(r=>r.onclick=()=>openEditor(+r.dataset.edit));
+  document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();
+    const it=state.items.find(x=>x.id===+b.dataset.toggle);it.available=it.available===false;render();});
+  document.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>advanceOrder(+b.dataset.adv));
+  // editor
+  const as=document.getElementById("ascrim");if(as)as.onclick=closeEditor;
+  const acl=document.getElementById("aclose");if(acl)acl.onclick=closeEditor;
+  const acan=document.getElementById("acancel");if(acan)acan.onclick=closeEditor;
+  const asv=document.getElementById("asave");if(asv)asv.onclick=saveEditor;
+  const addg=document.getElementById("addg");if(addg)addg.onclick=draftAddGroup;
+  document.querySelectorAll("[data-delg]").forEach(b=>b.onclick=()=>draftRemoveGroup(+b.dataset.delg));
+  document.querySelectorAll("[data-addo]").forEach(b=>b.onclick=()=>draftAddOption(+b.dataset.addo));
+  document.querySelectorAll("[data-delo]").forEach(b=>b.onclick=()=>draftRemoveOption(+b.dataset.delo,+b.dataset.oi2));
+  // live edits (no re-render to keep focus)
+  document.querySelectorAll(".gtitle").forEach(i=>i.oninput=e=>{state.adminDraft.modifiers[+e.target.dataset.gi].title=e.target.value;});
+  document.querySelectorAll(".gtype").forEach(s=>s.onchange=e=>draftSetType(+e.target.dataset.gi,e.target.value));
+  document.querySelectorAll(".onm").forEach(i=>i.oninput=e=>{state.adminDraft.modifiers[+e.target.dataset.gi].options[+e.target.dataset.oi].name=e.target.value;});
+  document.querySelectorAll(".odelta").forEach(i=>i.oninput=e=>{state.adminDraft.modifiers[+e.target.dataset.gi].options[+e.target.dataset.oi].delta=parseFloat(e.target.value)||0;});
+}
+function updatePlace(){const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
+  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=!ready;btn.querySelector("span").textContent=ready?'Изпрати поръчката':'Попълни име и телефон';}}
+
+boot();
+</script>
+</body>
+</html>

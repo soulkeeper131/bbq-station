@@ -1,0 +1,14 @@
+{
+  "name": "bbq-station",
+  "version": "0.1.0",
+  "description": "Грил Бистро — уеб приложение за поръчки за вземане (меню + Viber известия през Infobip).",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node local-server.mjs",
+    "test:viber": "node test-viber.mjs"
+  }
+}

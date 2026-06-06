@@ -1,0 +1,15 @@
+# Тайни — НИКОГА в Git
+secrets.local.json
+.env
+.env.*
+
+# Временни помощни скриптове
+_*.mjs
+_*.js
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
