@@ -94,7 +94,7 @@
   .card-body{flex:1;min-width:0}
   .card .name{font-weight:700;font-size:16px;margin-bottom:3px;transition:color .15s}
   .card .desc{font-size:13px;color:var(--muted);line-height:1.45}
-  .card .meta{display:flex;align-items:center;gap:10px;margin-top:9px}
+  .card .meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:9px}
   .price{font-family:'Golos Text',sans-serif;font-size:13px;color:var(--ink);white-space:nowrap}
   .m-eur{font-weight:700}
   .m-lv{font-weight:600;color:var(--muted);margin-left:8px;font-size:.92em}
@@ -485,7 +485,9 @@
     .tabs{padding:16px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
       -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -22px;padding-left:22px;padding-right:22px;border-radius:22px 22px 0 0}
     .menu{padding:8px 0 24px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+    /* minmax(0,1fr) позволява колоните да се свиват под min-content на картата,
+       иначе картите налагат ширината си и преливат извън панела. */
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
     .floatcart{display:none}
     .panel{position:sticky;top:46px;right:auto;left:auto;transform:none;width:366px;flex:0 0 366px;height:auto;z-index:1;
       max-height:calc(100vh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:22px;
