@@ -18,6 +18,8 @@
     --shadow-card:0 12px 26px -18px rgba(60,30,12,.55); --ember-tint:rgba(210,90,42,.1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  /* Мобилно: обвивката на количката е прозрачна за layout-а. */
+  .panel-rail{display:contents}
   /* iOS Safari: спираме хоризонталното „дърпане" (off-screen fixed панелите се броят
      в скролваемата ширина на Safari, но не и на Chrome). clip не създава scroll
      контейнер, затова не чупи sticky хедъра. */
@@ -503,7 +505,11 @@
     .card .thumb span{font-size:58px}
     .card .name{font-size:17px}
     .floatcart{display:none}
-    .panel{position:sticky;top:46px;right:auto;left:auto;transform:none;width:min(400px,32vw);flex:0 0 min(400px,32vw);height:auto;z-index:1;
+    /* Rail: sticky колона с височина на екрана — центрира количката при скрол надолу. */
+    .panel-rail{display:flex;flex-direction:column;flex:0 0 min(400px,32vw);width:min(400px,32vw);
+      position:sticky;top:46px;height:calc(100vh - 56px);justify-content:flex-start;align-self:flex-start}
+    .panel-rail.centered{justify-content:center}
+    .panel{position:relative;top:auto;right:auto;left:auto;transform:none;width:100%;flex:0 0 auto;height:auto;z-index:1;
       max-height:calc(100vh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:22px;
       box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
     .panel.show{transform:none}
@@ -974,13 +980,21 @@ function render(){
   if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+adminModal();bindCommon();bindAdmin();}
   else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`;bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+`<div class="app">`+header()+
-    `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div>`+cartPanel()+`</div>`+
+    `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
     floatCart()+sheet()+`</div>`;bindCommon();bindClient();}
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
   window.scrollTo(0,sy);
   const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
   set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
-  requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);});
+  requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);syncPanelRail();});
+}
+// Десктоп: горе количката е подравнена, при скрол надолу — вертикално центрирана в екрана.
+function syncPanelRail(){
+  const rail=document.querySelector(".panel-rail");
+  if(!rail||!window.matchMedia("(min-width:860px) and (hover:hover) and (pointer:fine)").matches){rail&&rail.classList.remove("centered");return;}
+  const stuck=rail.getBoundingClientRect().top<=48;
+  const scrolled=window.scrollY>Math.max(0,rail.offsetTop-60);
+  rail.classList.toggle("centered",stuck&&scrolled);
 }
 
 function trackBanner(){
@@ -1347,6 +1361,8 @@ function bindAdmin(){
 function updatePlace(){const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
   const btn=document.getElementById("placeBtn");if(btn){btn.disabled=!ready;btn.textContent=ready?'Изпрати поръчката':'Попълни име и телефон';}}
 
+window.addEventListener("scroll",syncPanelRail,{passive:true});
+window.addEventListener("resize",syncPanelRail,{passive:true});
 boot();
 </script>
 </body>
