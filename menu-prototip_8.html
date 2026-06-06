@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>BBQ Station — Поръчка за вземане</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,6 +23,9 @@
      контейнер, затова не чупи sticky хедъра. */
   html,body{height:100%;width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;
     -webkit-text-size-adjust:100%;text-size-adjust:100%}
+  /* iOS Safari: бързи тапове на +/− не трябва да приближават (double-tap zoom). */
+  button,.tab,.card,.opt,.time-opt,.qty button,.add-fab,.cart-line .q button,.demobar .seg button,
+  .sheet-close,.back,.opt-change,.gar-row button,.nav-btn,.switch{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   body{font-family:'Golos Text',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
     background:#f4ead9}
   body::before{content:"";position:fixed;inset:0;z-index:-2;
@@ -115,12 +118,12 @@
   .switch.on .sw-lbl{color:var(--olive)}
   .switch:not(.on) .sw-lbl{color:#b23a2b}
   .arow.sold .ico,.arow.sold .arow-nm{opacity:.5}
-  .card .thumb{width:104px;height:104px;border-radius:20px;flex:0 0 auto;position:relative;overflow:hidden;
+  .card .thumb{width:118px;height:118px;border-radius:20px;flex:0 0 auto;position:relative;overflow:hidden;
     background:radial-gradient(120% 120% at 30% 20%,rgba(255,255,255,.72),rgba(210,154,78,.42));
     border:1px solid var(--glass-bd);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s}
   .card:hover .thumb{transform:scale(1.03)}
-  .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46px;
+  .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
   .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
   .add-fab{width:36px;height:36px;border-radius:50%;background:var(--ember-tint);border:1px solid rgba(210,90,42,.35);
@@ -191,6 +194,10 @@
   .qty.sm{flex:0 0 auto}
   .qty.sm button{width:34px;height:34px;font-size:18px}
   .qty.sm b{font-size:16px;min-width:26px}
+  /* Тъч устройства: по-големи +/− зони (Safari не zoom-ва при бързо натискане). */
+  @media(hover:none) and (pointer:coarse){
+    .qty button,.qty.sm button,.cart-line .q button{min-width:44px;min-height:44px}
+  }
   .opt{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--glass-bd);border-radius:14px;
     margin-bottom:9px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.4)}
   .opt:hover{border-color:rgba(210,90,42,.5)}
@@ -260,6 +267,7 @@
     color:var(--ink);display:flex;align-items:center;justify-content:center;transition:background .12s}
   .cart-line .q button:hover{background:rgba(210,90,42,.1);color:var(--ember)}
   .cart-line .q .qn{min-width:30px;text-align:center;font-family:'Unbounded',sans-serif;font-size:16px}
+  .cart-line .qty-lock{flex:1;font-size:11.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
   .cart-line .rm{margin-left:auto;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;
     text-decoration:underline;font-family:inherit;white-space:nowrap;flex:0 0 auto}
   .amodal-scroll{overflow-x:hidden}
@@ -473,23 +481,27 @@
   /* Десктоп двуколонният изглед важи само за устройства с мишка (hover + fine pointer).
      Таблетите (тъч) остават на чистия мобилен изглед, независимо от ширината. */
   @media(min-width:860px) and (hover:hover) and (pointer:fine){
-    .app{max-width:1140px;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+    .app{max-width:none;width:100%;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
     /* На десктоп количката е страничен панел — НЕ заключваме скрола на страницата. */
     body.cart-open{overflow:auto}
-    header{padding:20px 30px;border-radius:0}
+    header{padding:18px 20px;border-radius:0}
     .brand h1{font-size:30px}
     .cart-btn{display:none}
-    .layout{display:flex;gap:26px;align-items:flex-start;padding:18px 26px 0}
+    .layout{display:flex;gap:18px;align-items:flex-start;padding:14px 16px 0;max-width:none}
     .main{flex:1;min-width:0;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-      border:1px solid var(--glass-bd);border-radius:22px;padding:2px 22px 16px;box-shadow:var(--shadow)}
+      border:1px solid var(--glass-bd);border-radius:22px;padding:2px 20px 16px;box-shadow:var(--shadow)}
     .tabs{padding:16px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
-      -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -22px;padding-left:22px;padding-right:22px;border-radius:22px 22px 0 0}
+      -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -20px;padding-left:20px;padding-right:20px;border-radius:22px 22px 0 0}
     .menu{padding:8px 0 24px}
     /* minmax(0,1fr) позволява колоните да се свиват под min-content на картата,
        иначе картите налагат ширината си и преливат извън панела. */
-    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
+    .card{gap:16px;padding:18px 0}
+    .card .thumb{width:136px;height:136px;border-radius:22px}
+    .card .thumb span{font-size:58px}
+    .card .name{font-size:17px}
     .floatcart{display:none}
-    .panel{position:sticky;top:46px;right:auto;left:auto;transform:none;width:366px;flex:0 0 366px;height:auto;z-index:1;
+    .panel{position:sticky;top:46px;right:auto;left:auto;transform:none;width:min(400px,32vw);flex:0 0 min(400px,32vw);height:auto;z-index:1;
       max-height:calc(100vh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:22px;
       box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
     .panel.show{transform:none}
@@ -511,6 +523,15 @@
     .admin-head{max-width:900px;margin:0 auto}
     .grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
     .trackbar{margin:0 0 4px}
+    .venue-map{height:220px}
+  }
+  /* Широк десктоп — три колони, още по-големи снимки, пълна ширина. */
+  @media(min-width:1280px) and (hover:hover) and (pointer:fine){
+    .layout{padding:14px 20px 0;gap:22px}
+    .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 28px}
+    .card .thumb{width:148px;height:148px}
+    .card .thumb span{font-size:62px}
+    .group-title{font-size:22px}
   }
 </style>
 </head>
@@ -811,9 +832,9 @@ function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
   document.querySelectorAll(".js-cart-total").forEach(e=>e.textContent=t);
   document.querySelectorAll(".js-cart-count").forEach(e=>e.textContent=c);}
 function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
+  // Комбо с гарнитури — количеството не се пипа от кошницата (+ добавя само месо).
+  if(l.garnishes&&l.garnishes.length)return;
   l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty+garnishTotal(l);
-  // Комбо ред (с гарнитури) има разбивка по цени → пълен ре-рендер.
-  if(l.garnishes&&l.garnishes.length){persist();render();return;}
   const el=document.querySelector(`[data-line="${id}"]`);
   if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;
     const p=el.querySelector(".js-portion");if(p)p.textContent=linePortionText(l);updateTotalsUI();persist();}
@@ -1057,7 +1078,8 @@ function cartPanel(){
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
         ${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):`<div class="opts js-portion">${linePortionText(l)}</div>`}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
-        <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
+        <div class="ctrls">${l.garnishes&&l.garnishes.length?`<span class="qty-lock">за промяна — премахни и добави отново</span>`:
+          `<div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>`}
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
   }
