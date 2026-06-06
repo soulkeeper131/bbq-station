@@ -973,7 +973,14 @@ function bindCommon(){
 }
 function bindClient(){
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{state.activeGroup=+t.dataset.g;
-    document.getElementById("grp-"+t.dataset.g)?.scrollIntoView({behavior:"smooth",block:"start"});
+    const el=document.getElementById("grp-"+t.dataset.g);
+    if(el){
+      // Спираме точно до заглавието — отчитаме „лепкавите" табове (на десктоп), за да не се крие отдолу.
+      const tb=document.querySelector(".tabs");const cs=tb?getComputedStyle(tb):null;
+      const stick=(cs&&cs.position==="sticky")?(tb.getBoundingClientRect().height+(parseFloat(cs.top)||0)):0;
+      const y=el.getBoundingClientRect().top+window.scrollY-stick-12;
+      window.scrollTo({top:y,behavior:"smooth"});
+    }
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
   document.querySelectorAll(".card").forEach(c=>c.onclick=()=>{if(c.dataset.sold==="true")return;const it=state.items.find(i=>i.id===+c.dataset.item);if(it)openItem(it);});
   const oc=document.getElementById("openCart");if(oc)oc.onclick=()=>{state.view="cart";render();};
