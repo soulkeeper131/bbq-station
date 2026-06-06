@@ -15,6 +15,7 @@
     --glass:rgba(255,255,255,.7); --glass-2:rgba(255,255,255,.82); --glass-dark:rgba(255,255,255,.62);
     --glass-bd:rgba(255,255,255,.85); --glass-bd-dk:rgba(70,50,35,.12);
     --blur:saturate(150%) blur(16px); --shadow:0 20px 46px -22px rgba(18,11,6,.55);
+    --shadow-card:0 12px 26px -18px rgba(60,30,12,.55); --ember-tint:rgba(210,90,42,.1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   /* iOS Safari: спираме хоризонталното „дърпане" (off-screen fixed панелите се броят
@@ -48,41 +49,51 @@
     background:rgba(247,239,227,.7)}
   body.cart-open{overflow:hidden}
 
-  header{position:relative;z-index:40;background:rgba(255,255,255,.66);-webkit-backdrop-filter:var(--blur);
-    backdrop-filter:var(--blur);color:var(--ink);padding:16px 18px;border-bottom:1px solid var(--glass-bd-dk)}
+  header{position:relative;z-index:40;background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(255,250,242,.58));
+    -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--ink);padding:18px 18px 16px;
+    border-bottom:1px solid var(--glass-bd-dk)}
   .brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .brand h1{font-family:'Unbounded',sans-serif;font-weight:900;font-size:25px;line-height:1;letter-spacing:-.01em}
+  .brand h1{font-family:'Unbounded',sans-serif;font-weight:900;font-size:26px;line-height:1;letter-spacing:-.02em}
   .brand h1 .amp{color:var(--ember);font-style:italic;font-weight:500}
-  .brand .sub{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.02em}
-  .cart-btn{background:var(--ember);color:#fff;border:none;border-radius:999px;padding:11px 16px;font-weight:700;
-    font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    box-shadow:0 10px 22px -8px rgba(210,90,42,.7);transition:transform .15s,background .2s}
-  .cart-btn:hover{background:var(--ember-dark);transform:translateY(-1px)}
+  .brand h1::after{content:"";display:block;width:38px;height:3px;border-radius:3px;margin-top:8px;
+    background:linear-gradient(90deg,var(--ember),var(--gold))}
+  .brand .sub{font-size:11.5px;color:var(--muted);margin-top:7px;letter-spacing:.02em}
+  .cart-btn{background:linear-gradient(180deg,#e0673a,var(--ember));color:#fff;border:none;border-radius:999px;
+    padding:11px 17px;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;
+    justify-content:center;gap:8px;box-shadow:0 12px 24px -9px rgba(210,90,42,.75);transition:transform .15s,filter .2s}
+  .cart-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  .cart-btn:active{transform:translateY(0) scale(.97)}
   .cart-btn .count{background:#fff;color:var(--ember);border-radius:999px;min-width:20px;height:20px;
     display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;padding:0 5px}
 
   .layout{display:block}
   .tabs{display:flex;gap:8px;overflow-x:auto;padding:14px 18px 4px;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
-  .tab{flex:0 0 auto;border:1px solid var(--glass-bd);background:rgba(255,255,255,.42);border-radius:999px;
-    padding:8px 15px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;transition:.18s;white-space:nowrap;
-    display:inline-flex;align-items:center;justify-content:center}
-  .tab:hover{border-color:rgba(210,90,42,.55)}
-  .tab.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .tab{flex:0 0 auto;border:1px solid var(--glass-bd);background:rgba(255,255,255,.5);border-radius:999px;
+    padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:transform .15s,background .18s,color .18s,border-color .18s,box-shadow .18s}
+  .tab:hover{border-color:rgba(210,90,42,.55);color:var(--ember)}
+  .tab:active{transform:scale(.95)}
+  .tab.active{background:var(--ink);color:var(--cream);border-color:var(--ink);box-shadow:0 9px 20px -10px rgba(44,33,26,.75)}
+  .tab.active:hover{color:var(--cream)}
 
   .menu{padding:8px 18px 120px}
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
   .group-title small{font-family:'Golos Text';font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
   .grid{display:block}
-  .card{display:flex;gap:14px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--line);
+  .card{display:flex;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);
     cursor:pointer;transition:opacity .15s}
   .card:hover .name{color:var(--ember)}
+  .card:active{opacity:.7}
   .card-body{flex:1;min-width:0}
   .card .name{font-weight:700;font-size:16px;margin-bottom:3px;transition:color .15s}
   .card .desc{font-size:13px;color:var(--muted);line-height:1.45}
   .card .meta{display:flex;align-items:center;gap:10px;margin-top:9px}
-  .price{font-family:'Golos Text',sans-serif;font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap}
+  .price{font-family:'Golos Text',sans-serif;font-size:13px;color:var(--ink);white-space:nowrap}
+  .m-eur{font-weight:700}
+  .m-lv{font-weight:600;color:var(--muted);margin-left:6px;font-size:.92em}
   .badge-opt{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--olive);
     border:1px solid rgba(111,115,69,.4);padding:3px 8px;border-radius:999px;background:rgba(111,115,69,.08)}
   .badge-sold{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#b23a2b;
@@ -99,15 +110,19 @@
   .switch.on .sw-lbl{color:var(--olive)}
   .switch:not(.on) .sw-lbl{color:#b23a2b}
   .arow.sold .ico,.arow.sold .arow-nm{opacity:.5}
-  .card .thumb{width:74px;height:74px;border-radius:16px;flex:0 0 auto;position:relative;overflow:hidden;
-    background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
-    border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
-  .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .card .thumb{width:76px;height:76px;border-radius:18px;flex:0 0 auto;position:relative;overflow:hidden;
+    background:radial-gradient(120% 120% at 30% 20%,rgba(255,255,255,.72),rgba(210,154,78,.42));
+    border:1px solid var(--glass-bd);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.6);
+    transition:transform .18s}
+  .card:hover .thumb{transform:scale(1.03)}
+  .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
   .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-  .add-fab{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid var(--glass-bd);
-    display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--ember);font-weight:700;
-    box-shadow:var(--shadow);flex:0 0 auto;align-self:center;transition:.15s}
-  .card:hover .add-fab{background:var(--ember);color:#fff;border-color:var(--ember)}
+  .add-fab{width:36px;height:36px;border-radius:50%;background:var(--ember-tint);border:1px solid rgba(210,90,42,.35);
+    display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;color:var(--ember);font-weight:700;
+    box-shadow:0 8px 16px -9px rgba(210,90,42,.6);flex:0 0 auto;align-self:center;transition:.15s}
+  .card:hover .add-fab{background:var(--ember);color:#fff;border-color:var(--ember);transform:scale(1.08)}
+  .card:active .add-fab{transform:scale(.92)}
 
   .scrim{position:fixed;inset:0;background:rgba(20,12,8,.5);z-index:75;opacity:0;pointer-events:none;
     transition:opacity .25s;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
@@ -160,13 +175,13 @@
   .qty b{font-size:18px;min-width:30px;text-align:center;font-family:'Unbounded',sans-serif}
 
   .sheet-foot{padding:14px 20px max(22px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:transparent}
-  .btn-primary{width:100%;border:none;border-radius:15px;background:var(--ember);color:#fff;font-family:inherit;
-    font-weight:700;font-size:15.5px;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    gap:10px;box-shadow:0 14px 28px -12px rgba(210,90,42,.8);transition:background .2s,transform .12s}
+  .btn-primary{width:100%;border:none;border-radius:15px;background:linear-gradient(180deg,#e0673a,var(--ember));color:#fff;
+    font-family:inherit;font-weight:700;font-size:15.5px;padding:16px;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:10px;box-shadow:0 16px 30px -12px rgba(210,90,42,.85);transition:filter .2s,transform .12s,box-shadow .2s}
   .btn-primary.split{justify-content:space-between}
-  .btn-primary:hover{background:var(--ember-dark)}
+  .btn-primary:hover{filter:brightness(1.06)}
   .btn-primary:active{transform:scale(.99)}
-  .btn-primary:disabled{background:rgba(60,42,30,.3);color:rgba(255,255,255,.8);box-shadow:none;cursor:not-allowed}
+  .btn-primary:disabled{background:rgba(60,42,30,.3);color:rgba(255,255,255,.8);box-shadow:none;cursor:not-allowed;filter:none}
 
   /* Мобилно: количката е плътна, цяла страница (без прозрачност, за да не се вижда менюто отдолу). */
   .panel{position:fixed;top:0;right:50%;transform:translateX(50%) translateX(520px);width:100%;max-width:520px;
@@ -230,8 +245,9 @@
     margin-bottom:4px;border-bottom:1px solid var(--line)}
   .ob-meta{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);padding:10px 0 0;
     border-top:1px solid var(--line);margin-top:8px}
-  .ob-total{display:flex;justify-content:space-between;font-family:'Golos Text',sans-serif;font-weight:700;font-size:14.5px;
-    padding-top:10px;margin-top:8px;border-top:1px solid var(--line)}
+  .ob-total{display:flex;justify-content:space-between;align-items:baseline;font-family:'Golos Text',sans-serif;
+    font-weight:700;font-size:15px;padding-top:11px;margin-top:8px;border-top:1px solid var(--line)}
+  .ob-total .m-eur{color:var(--ember);font-size:1.06em}
 
   .confirm{padding:40px 24px 30px;text-align:center;animation:fadein .5s ease;max-width:460px;margin:0 auto}
   @keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -518,6 +534,8 @@ const state={
 const EUR_RATE=1.95583;
 const fmtNum=n=>n.toFixed(2).replace(".",",");
 const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
+// Цена с йерархия: евро (водещо) + лева (приглушено). За по-чист, премиум вид.
+const moneyHTML=n=>`<span class="m-eur">${fmtNum(n/EUR_RATE)} €</span><span class="m-lv">${fmtNum(n)} лв</span>`;
 const root=document.getElementById("root");
 const uid=()=>"o"+Math.random().toString(36).slice(2,7);
 
@@ -642,7 +660,7 @@ function updateTotalsUI(){const t=money(cartTotal()),c=cartCount();
 function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)return;
   l.qty=Math.max(1,l.qty+d);l.lineTotal=l.unit*l.qty;
   const el=document.querySelector(`[data-line="${id}"]`);
-  if(el){el.querySelector(".lt").textContent=money(l.lineTotal);el.querySelector(".qn").textContent=l.qty;updateTotalsUI();persist();}
+  if(el){el.querySelector(".lt").innerHTML=moneyHTML(l.lineTotal);el.querySelector(".qn").textContent=l.qty;updateTotalsUI();persist();}
   else{persist();render();}}
 function removeLine(id){state.cart=state.cart.filter(x=>x.lineId!==id);persist();render();}
 
@@ -817,7 +835,7 @@ function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     items.forEach(it=>{const hasOpt=(it.modifiers||[]).length>0;const sold=it.available===false;
       out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
-        <div class="meta"><span class="price">${money(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
+        <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:"")}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
     out+=`</div></div>`;});return out+`</div>`;}
 function floatCart(){if(!cartCount())return"";return `<div class="floatcart" id="floatcart">
@@ -857,14 +875,14 @@ function cartPanel(){
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
       <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
-        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${money(l.lineTotal)}</span></div>${l.summary&&l.summary.length?`<span class="li-opt">${l.summary.join(", ")}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
-        <div class="ob-total"><span>Общо за плащане</span><span>${money(cartTotal())}</span></div></div></div>
+        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${l.summary&&l.summary.length?`<span class="li-opt">${l.summary.join(", ")}</span>`:""}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
+        <div class="ob-total"><span>Общо за плащане</span><span>${moneyHTML(cartTotal())}</span></div></div></div>
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
   } else {
     if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
     else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
-        <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${money(l.lineTotal)}</div></div>
+        <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyHTML(l.lineTotal)}</div></div>
         ${l.summary.length?`<div class="opts">+ ${l.summary.join(" · ")}</div>`:""}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls"><div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
