@@ -596,10 +596,10 @@ const money=n=>fmtNum(n/EUR_RATE)+" € · "+fmtNum(n)+" лв";
 // Цена с йерархия: евро (водещо) + лева (приглушено). За по-чист, премиум вид.
 const moneyHTML=n=>`<span class="m-eur">${fmtNum(n/EUR_RATE)} €</span><span class="m-lv">${fmtNum(n)} лв</span>`;
 // Пояснение към реда в кошницата: при 2+ бройки показва единичната цена
-// (напр. „5 × 1,20 лв“). Гарнитурите вече са отделни редове.
+// в евро и лева (напр. „5 × 0,61 € · 1,20 лв“), консистентно с останалите цени.
 function linePortionText(l){
   const parts=[];
-  if(l.qty>1) parts.push(l.qty+" × "+fmtNum(l.unit)+" лв");
+  if(l.qty>1) parts.push(l.qty+" × "+money(l.unit));
   if(l.summary&&l.summary.length) parts.push((l.qty>1?"всяка с: ":"+ ")+l.summary.join(" · "));
   return parts.join(" · ");
 }
