@@ -168,8 +168,12 @@
   .panel-head{background:rgba(255,255,255,.55);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     color:var(--ink);padding:max(18px,env(safe-area-inset-top)) 20px 18px;display:flex;align-items:center;gap:14px;
     border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
-  .panel-head .back{background:rgba(70,50,35,.08);border:none;color:var(--ink);width:36px;height:36px;
-    border-radius:50%;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .panel-head .back{background:rgba(70,50,35,.06);border:1px solid var(--glass-bd);color:var(--ink);width:40px;height:40px;
+    border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;
+    transition:background .15s ease,transform .12s ease}
+  .panel-head .back:hover{background:rgba(70,50,35,.12)}
+  .panel-head .back:active{transform:scale(.92)}
+  .panel-head .back svg{display:block;margin-right:1px}
   .panel-head h2{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:600}
   .panel-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 20px}
   .cart-line{padding:16px 0;border-bottom:1px solid var(--line)}
@@ -844,7 +848,7 @@ function cartPanel(){
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total">${money(cartTotal())}</span></button></div>`;}
   }
   return `<div class="panel ${show?'show':''}" id="panel"><div class="panel-head">
-      <button class="back ${backCls}" id="panelBack">‹</button><h2>${title}</h2></div>${inner}</div>`;
+      <button class="back ${backCls}" id="panelBack" aria-label="Назад"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>${title}</h2></div>${inner}</div>`;
 }
 
 function confirmView(){
