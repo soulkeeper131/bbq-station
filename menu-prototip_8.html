@@ -643,7 +643,7 @@ function changeQtyCart(id,d){const l=state.cart.find(x=>x.lineId===id);if(!l)ret
 function removeLine(id){state.cart=state.cart.filter(x=>x.lineId!==id);persist();render();}
 
 async function placeOrder(){
-  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=true;btn.querySelector("span").textContent="Изпращане…";}
+  const btn=document.getElementById("placeBtn");if(btn){btn.disabled=true;btn.textContent="Изпращане…";}
   const payload={type:"takeaway",customer:{name:state.order.name,phone:state.order.phone},pickup:state.order.time,
     lines:state.cart.map(l=>({stockId:l.itemId,qty:l.qty,unitPrice:l.unit,options:l.summary,note:l.note})),total:cartTotal()};
   glog("order:submit",payload);
