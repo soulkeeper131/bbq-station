@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Грил Бистро — Поръчка за вземане</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,11 @@
     --blur:saturate(150%) blur(16px); --shadow:0 20px 46px -22px rgba(18,11,6,.55);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
+  /* iOS Safari: спираме хоризонталното „дърпане" (off-screen fixed панелите се броят
+     в скролваемата ширина на Safari, но не и на Chrome). clip не създава scroll
+     контейнер, затова не чупи sticky хедъра. */
+  html,body{height:100%;width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;
+    -webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{font-family:'Golos Text',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;
     background:#f4ead9}
   body::before{content:"";position:fixed;inset:0;z-index:-2;
@@ -31,7 +35,7 @@
 
   .demobar{position:sticky;top:0;z-index:70;background:rgba(255,255,255,.72);-webkit-backdrop-filter:var(--blur);
     backdrop-filter:var(--blur);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:6px;
-    padding:8px 12px;font-size:12px;border-bottom:1px solid var(--glass-bd-dk)}
+    padding:max(8px,env(safe-area-inset-top)) 12px 8px;font-size:12px;border-bottom:1px solid var(--glass-bd-dk)}
   .demobar b{color:var(--ember);letter-spacing:.1em;text-transform:uppercase;font-size:10.5px;margin-right:6px}
   .demobar .seg{display:flex;background:rgba(70,50,35,.08);border-radius:999px;padding:3px}
   .demobar .seg button{border:none;background:none;color:var(--ink);font-size:12px;font-weight:600;padding:6px 14px;
@@ -40,7 +44,7 @@
 
   /* ВАЖНО: без backdrop-filter тук на мобилно — иначе .app става containing block
      за position:fixed елементите (количка/модал) и ги мести/отрязва спрямо страницата. */
-  .app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
+  .app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;
     background:rgba(247,239,227,.7)}
   body.cart-open{overflow:hidden}
 
@@ -266,7 +270,7 @@
   .link-btn{background:none;border:none;color:var(--ember);font-family:inherit;font-weight:700;font-size:14px;
     cursor:pointer;margin-top:18px;text-decoration:underline}
   .floatcart{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;
-    padding:14px 18px 20px;z-index:35;transition:transform .25s}
+    padding:14px 18px max(20px,env(safe-area-inset-bottom));z-index:35;transition:transform .25s}
   .floatcart.hide{transform:translateX(-50%) translateY(120%)}
 
   #toasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;
