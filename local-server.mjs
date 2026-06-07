@@ -13,7 +13,7 @@
 // Локално стартиране:  node local-server.mjs  →  http://localhost:3000
 
 import { createServer } from "node:http";
-import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join, normalize } from "node:path";
 
 function loadConfig() {
@@ -216,6 +216,13 @@ const server = createServer(async (req, res) => {
       }
       const ext = EXT_BY_MIME[m[1]];
       const file = `p${id}.${ext}`;
+      for (const oldExt of ["jpg", "jpeg", "png", "webp"]) {
+        if (oldExt === ext) continue;
+        const oldPath = join(UPLOAD_DIR, `p${id}.${oldExt}`);
+        if (existsSync(oldPath)) {
+          try { unlinkSync(oldPath); } catch { /* ignore */ }
+        }
+      }
       writeFileSync(join(UPLOAD_DIR, file), buf);
       const url = `/uploads/${file}?v=${Date.now()}`;
       productImages[id] = url;

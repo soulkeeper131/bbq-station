@@ -1138,7 +1138,33 @@ function header(){return `<header><div class="brand">
 function imgFor(it){return (it&&state.productImages[it.id])||null;}
 // Напитки — продуктови снимки без фон; останалите ястия — cover върху градиента.
 const PACK_SHOT_GROUPS=new Set([3]);
-function isPackShot(it){return it&&PACK_SHOT_GROUPS.has(it.groupID);}
+function isPackShotGroup(gid){return PACK_SHOT_GROUPS.has(Number(gid));}
+function isPackShot(it){return it&&isPackShotGroup(it.groupID);}
+function packShotForProduct(productId){
+  const it=state.items.find(x=>x.id===productId);
+  if(it&&isPackShotGroup(it.groupID))return true;
+  return isPackShotGroup(state.adminDraft?.groupID);
+}
+function isAlphaImageFile(file){
+  const t=(file.type||"").toLowerCase();
+  if(t==="image/png"||t==="image/webp")return true;
+  return /\.(png|webp)$/i.test(file.name||"");
+}
+function canvasHasAlpha(ctx,w,h){
+  const data=ctx.getImageData(0,0,w,h).data;
+  const step=Math.max(1,Math.floor(Math.sqrt(w*h)/80));
+  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
+    if(data[(y*w+x)*4+3]<252)return true;
+  }
+  return false;
+}
+function drawResizedImage(img,w,h,{whiteBg=false}={}){
+  const c=document.createElement("canvas");c.width=w;c.height=h;
+  const ctx=c.getContext("2d");
+  if(whiteBg){ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);}
+  ctx.drawImage(img,0,0,w,h);
+  return c;
+}
 function thumbClass(it){const c=["thumb"];if(imgFor(it)&&isPackShot(it))c.push("pack-shot");return c.join(" ");}
 // Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
 function thumbInner(it){const u=imgFor(it);
@@ -1367,31 +1393,32 @@ function draftRemoveOption(gi,oi){state.adminDraft.modifiers[gi].options.splice(
 function draftSetType(gi,val){const g=state.adminDraft.modifiers[gi];if(val==="single"){g.required=true;g.min=1;g.max=1;}else{g.required=false;g.min=0;g.max=5;}render();keepEditor();}
 function keepEditor(){document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");}
 // Смалява снимката в браузъра до разумен размер преди качване (бързо + приятно).
-// PNG/WebP без фон: JPEG ги прави с черен фон — за напитки пазим PNG или слагаме бял фон.
+// Прозрачни PNG/WebP + JPEG = черен фон; напитки винаги бял фон, PNG при нужда.
 function fileToResizedDataUrl(file,maxDim=800,quality=.82,{packShot=false}={}){
   return new Promise((resolve,reject)=>{
     const img=new Image();const url=URL.createObjectURL(file);
     img.onload=()=>{URL.revokeObjectURL(url);let w=img.width,h=img.height;
       if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
       else if(h>=w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
-      const c=document.createElement("canvas");c.width=w;c.height=h;
-      const ctx=c.getContext("2d");
-      const alphaSrc=/image\/(png|webp)/i.test(file.type);
-      if(packShot&&alphaSrc){
-        ctx.drawImage(img,0,0,w,h);
-        resolve(c.toDataURL("image/png"));
+      const probe=drawResizedImage(img,w,h);
+      const hasAlpha=packShot||isAlphaImageFile(file)||canvasHasAlpha(probe.getContext("2d"),w,h);
+      if(packShot){
+        resolve(drawResizedImage(img,w,h,{whiteBg:true}).toDataURL("image/png"));
         return;
       }
-      if(alphaSrc||packShot){ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);}
-      ctx.drawImage(img,0,0,w,h);
-      resolve(c.toDataURL("image/jpeg",quality));};
+      if(hasAlpha){
+        resolve(drawResizedImage(img,w,h,{whiteBg:true}).toDataURL("image/jpeg",quality));
+        return;
+      }
+      resolve(drawResizedImage(img,w,h).toDataURL("image/jpeg",quality));};
     img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("невалидна снимка"));};
     img.src=url;});
 }
 async function uploadProductImage(productId,file){
   try{
-    if(!/^image\//.test(file.type)) throw new Error("Файлът не е снимка");
-    const packShot=PACK_SHOT_GROUPS.has(state.adminDraft?.groupID);
+    if(!/^image\//i.test(file.type||"")&&!/\.(jpe?g|png|webp|gif)$/i.test(file.name||""))
+      throw new Error("Файлът не е снимка");
+    const packShot=packShotForProduct(productId);
     const dataUrl=await fileToResizedDataUrl(file,800,.82,{packShot});
     const r=await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({productId,dataUrl})});
@@ -1488,7 +1515,7 @@ function adminModal(){
       <div class="amodal-scroll">
         ${editorFieldsHTML(d)}
         <div class="img-edit">
-          <div class="img-prev ${imgD?'has':''}${imgD&&PACK_SHOT_GROUPS.has(d.groupID)?' pack-shot':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
+          <div class="img-prev ${imgD?'has':''}${imgD&&isPackShotGroup(d.groupID)?' pack-shot':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
           <div class="img-actions"><div class="img-h">Снимка на продукта</div>
             <div class="img-row"><label class="btn-ghost compact" for="imgUp">${imgD?'Смени снимка':'Качи снимка'}</label>
               ${imgD?`<button class="link-btn danger" id="imgRm">Премахни</button>`:''}</div>
