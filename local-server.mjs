@@ -56,9 +56,9 @@ function readBody(req) {
   });
 }
 
-// Сървърно хранилище на поръчки (в паметта) — за да работи тракинг линкът
-// от друго устройство. Бел.: при рестарт/предеплой данните се губят (няма БД/volume).
+// Поръчки: в паметта + orders.json на volume (оцеляват след рестарт/деплой).
 const orders = new Map();
+const ORDERS_MAX = 500;
 
 // ── Снимки на продуктите ────────────────────────────────────────
 // Пазят се на диск в DATA_DIR (в Coolify → постоянен volume), за да ги
@@ -67,6 +67,7 @@ const DATA_DIR = process.env.DATA_DIR || new URL("./data/", import.meta.url).pat
 const UPLOAD_DIR = join(DATA_DIR, "uploads");
 const IMAGES_JSON = join(DATA_DIR, "product-images.json");
 const MENU_JSON = join(DATA_DIR, "menu-overrides.json");
+const ORDERS_JSON = join(DATA_DIR, "orders.json");
 const MIME = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
 const EXT_BY_MIME = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
@@ -94,9 +95,32 @@ const saveMenuOverrides = () => {
   try { writeFileSync(MENU_JSON, JSON.stringify(menuOverrides)); }
   catch (e) { console.warn("⚠️  Грешка при запис на меню overrides:", String(e)); }
 };
+const ordersList = () =>
+  [...orders.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+const loadOrders = () => {
+  try {
+    if (!existsSync(ORDERS_JSON)) return;
+    const arr = JSON.parse(readFileSync(ORDERS_JSON, "utf8"));
+    if (!Array.isArray(arr)) return;
+    arr.forEach((o) => {
+      if (o && o.docID !== undefined && o.docID !== null) orders.set(String(o.docID), o);
+    });
+  } catch (e) {
+    console.warn("⚠️  Грешка при зареждане на поръчки:", String(e));
+  }
+};
+const saveOrders = () => {
+  try {
+    writeFileSync(ORDERS_JSON, JSON.stringify(ordersList().slice(0, ORDERS_MAX)));
+  } catch (e) {
+    console.warn("⚠️  Грешка при запис на поръчки:", String(e));
+  }
+};
+loadOrders();
 
 log("[boot]", `Viber ${viberReady ? "конфигуриран ✓" : "НЕ е конфигуриран ✗"} | sender=${cfg.sender || "—"} | host=${cfg.baseUrl || "—"}`);
 log("[boot]", `Снимки: ${Object.keys(productImages).length} в ${DATA_DIR}`);
+log("[boot]", `Поръчки: ${orders.size} в ${DATA_DIR}`);
 log("[boot]", `Меню overrides: ${menuOverrides.customItems.length} ръчни · ${Object.keys(menuOverrides.patches).length} промени · ${menuOverrides.hidden.length} скрити`);
 log("[boot]", `Публичен адрес за линкове: ${cfg.publicUrl || "— (ползва се origin-ът на клиента)"}`);
 if (!viberReady) {
@@ -135,6 +159,7 @@ const server = createServer(async (req, res) => {
       }
       const id = String(o.docID);
       orders.set(id, { ...o, updatedAt: Date.now() });
+      saveOrders();
       log(`[orders] upsert #${id} | статус=${o.status}`);
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ok: true }));
@@ -142,6 +167,12 @@ const server = createServer(async (req, res) => {
       res.writeHead(400, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: String(e) }));
     }
+  }
+
+  // Всички поръчки (за админ / синхронизация между устройства).
+  if (req.method === "GET" && (req.url === "/api/orders" || req.url.startsWith("/api/orders?"))) {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify(ordersList()));
   }
 
   // Поръчка по номер → за страницата със статуса (тракинг линк).
