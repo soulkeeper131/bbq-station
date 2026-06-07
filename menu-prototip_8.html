@@ -652,9 +652,29 @@
     .card .thumb span{font-size:62px}
     .group-title{font-size:22px}
   }
+
+  /* Телефон в ландшафт — блокираме: приложението е само за портрет. */
+  .rotate-lock{display:none;position:fixed;inset:0;z-index:200;background:var(--cream);
+    align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) 24px
+    max(24px,env(safe-area-inset-bottom));text-align:center}
+  .rotate-lock.show{display:flex}
+  .rotate-lock-inner{max-width:300px;color:var(--ink)}
+  .rotate-lock .rotate-ic{font-size:52px;line-height:1;display:block;margin:0 auto 18px;
+    animation:rotateHint 2.4s ease-in-out infinite}
+  .rotate-lock b{display:block;font-family:'Unbounded',sans-serif;font-size:17px;font-weight:600;margin-bottom:8px}
+  .rotate-lock p{font-size:14px;color:var(--muted);line-height:1.45}
+  @keyframes rotateHint{0%,100%{transform:rotate(0deg)}45%,55%{transform:rotate(90deg)}}
+  body.phone-landscape #root{visibility:hidden;pointer-events:none}
 </style>
 </head>
 <body>
+<div id="rotateLock" class="rotate-lock" aria-live="polite" hidden>
+  <div class="rotate-lock-inner">
+    <span class="rotate-ic" aria-hidden="true">📱</span>
+    <b>Завъртете телефона вертикално</b>
+    <p>Менюто и поръчката работят най-добре в портретен режим.</p>
+  </div>
+</div>
 <div id="root"></div>
 
 <script>
@@ -926,10 +946,19 @@ async function boot(){
   }
   glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
   let layoutT;
-  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{if(state.mode!=="admin")render();},100);};
+  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{syncRotateLock();if(state.mode!=="admin")render();},100);};
   window.addEventListener("resize",onLayoutChange);
   window.addEventListener("orientationchange",onLayoutChange);
+  syncRotateLock();
   render();
+}
+function isPhoneLandscape(){return window.matchMedia("(orientation:landscape) and (max-height:520px)").matches;}
+function syncRotateLock(){
+  const el=document.getElementById("rotateLock");if(!el)return;
+  const on=isPhoneLandscape();
+  el.classList.toggle("show",on);
+  el.hidden=!on;
+  document.body.classList.toggle("phone-landscape",on);
 }
 const cartCount=()=>state.cart.reduce((s,l)=>s+l.qty,0);
 const cartTotal=()=>state.cart.reduce((s,l)=>s+l.lineTotal,0);
@@ -1169,7 +1198,10 @@ function render(){
   set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
   requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);});
 }
-function isSidePanelLayout(){return window.matchMedia("(min-width:768px) and (orientation:landscape)").matches;}
+function isSidePanelLayout(){
+  if(isPhoneLandscape())return false;
+  return window.matchMedia("(min-width:768px) and (orientation:landscape)").matches;
+}
 function sideCartColumnWidth(){
   const w=window.innerWidth;
   if(w<768)return 0;
