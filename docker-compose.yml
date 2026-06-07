@@ -1,0 +1,14 @@
+# Локален старт със същата структура като Coolify (persistent /data).
+services:
+  bbq-station:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /data
+      DEMO_MODE: "true"
+    restart: unless-stopped

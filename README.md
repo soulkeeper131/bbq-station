@@ -1,40 +1,91 @@
 # BBQ Station
 
-Уеб приложение за **поръчки за вземане** от грил-ресторант. Клиентът разглежда меню,
-сглобява поръчка с гарнитури и добавки, оставя име и телефон, и проследява статуса.
-При смяна на статус се изпраща **Viber известие** (през Infobip).
+[![CI](https://github.com/soulkeeper131/bbq-station/actions/workflows/ci.yml/badge.svg)](https://github.com/soulkeeper131/bbq-station/actions/workflows/ci.yml)
 
-Towa е работещ прототип: менюто и потокът на поръчката са пълни, а данните засега
-идват от mock слой, оформен като реалния API на **Янак** (`api.eyanak.com`).
+Уеб приложение за **поръчки за вземане** от грил ресторант. Клиентът разглежда меню, сглобява поръчка с гарнитури и добавки, оставя име и телефон, и проследява статуса. При ключови стъпки се изпраща **Viber известие** (Infobip).
+
+**Production:** [bbqstation.blv.bg](https://bbqstation.blv.bg)
 
 ---
 
-## Какво е направено до момента
+## Характеристики (MVP)
 
-### Архитектура
-Приложението е **single-file frontend** (`menu-prototip_8.html`) — HTML, CSS и
-vanilla JS в един файл, без build стъпка — сервиран от лек Node HTTP сървър
-(`local-server.mjs`), който освен това действа като **proxy към Viber**, за да не
-излиза API ключът на клиента.
+| Област | Статус |
+|--------|--------|
+| Меню с категории и модификатори | ✅ |
+| Кошница + checkout | ✅ |
+| Проследяване `?track=<номер>` | ✅ |
+| Viber (приета / готова) | ✅ |
+| Админ: продукти, снимки, поръчки | ✅ |
+| Персистентност на volume | ✅ |
+| Docker / Coolify | ✅ |
+| Янак POS интеграция | 🔜 mock |
+
+---
+
+## Архитектура (накратко)
 
 ```
-Браузър ── GET / ─────────────▶ local-server.mjs ──▶ menu-prototip_8.html
-Браузър ── POST /api/send-viber ─▶ local-server.mjs ──▶ Infobip Viber API
+Browser ── GET / ──────────────▶ local-server.mjs ──▶ menu-prototip_8.html
+Browser ── POST /api/orders ───▶ local-server.mjs ──▶ orders.json (volume)
+Browser ── POST /api/send-viber ▶ local-server.mjs ──▶ Infobip Viber API
 ```
 
-### Функционалност
-- **Режим Клиент** — категории (Скара, Салати, Напитки, Бира, Добавки), карти на ястия,
-  модал за избор на `modifiers` (гарнитури/добавки с доплащане `delta`), кошница.
-- **Поръчка и проследяване** — име + телефон, създаване на поръчка, статус-стъпки
-  (получена → приготвя се → готова за вземане) с авто-симулация за демо.
-- **Режим Администрация** — управление на продукти и модификатори.
-- **Известия** — toast в UI + реален Viber към телефона на клиента при смяна на статус.
+- **Frontend:** един HTML файл, vanilla JS, без build
+- **Backend:** Node 22 HTTP, без npm dependencies в prod
+- **Данни:** seed mock (`YanakAPI`) + server overrides/images/orders
 
-### Слой данни (`YanakAPI`)
-Имитира реалните endpoint-и на Янак: `getGroups`, `getStocks`, `createOrder`.
-Идеята е тялото им да се замени с реален `fetch()`, без UI да се пипа.
-Полето `modifiers` (комбинации) се управлява **от наша страна** и при поръчка се
-превръща в редове/бележка към ордера. Поръчките се пазят локално в `localStorage`.
+Подробно: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API.md](docs/API.md)
+
+---
+
+## Бърз старт
+
+```bash
+git clone https://github.com/soulkeeper131/bbq-station.git
+cd bbq-station
+cp .env.example .env   # или secrets.local.json.example → secrets.local.json
+
+npm start
+# → http://localhost:3000
+```
+
+**Docker (с volume):**
+
+```bash
+docker compose up --build
+```
+
+**Viber тест:**
+
+```bash
+npm run test:viber
+```
+
+---
+
+## Конфигурация
+
+| Променлива | Описание |
+|------------|----------|
+| `INFOBIP_BASE_URL` | Infobip host |
+| `INFOBIP_API_KEY` | App ключ |
+| `INFOBIP_SENDER` | Подател (trial: `IBSelfServe`) |
+| `PUBLIC_URL` | Публичен домейн за тракинг линкове |
+| `DATA_DIR` | Volume път (`/data` в Docker) |
+| `DEMO_MODE` | `false` в продукция — скрива демо лентата |
+| `ADMIN_API_KEY` | Ключ за админ API и кухня |
+| `PORT` | Порт (по подразбиране 3000) |
+
+Пълен списък: [.env.example](.env.example)
+
+### Продукция (Coolify)
+
+1. Volume mount → `/data`
+2. Env: `DEMO_MODE=false`, `ADMIN_API_KEY`, `PUBLIC_URL`, `INFOBIP_*`
+3. Health check: `/healthz`
+4. Админ: `https://your-domain/?admin=1` + admin ключ
+5. Deploy след push (ръчно или webhook)
 
 ---
 
@@ -42,77 +93,21 @@ vanilla JS в един файл, без build стъпка — сервиран 
 
 | Файл | Роля |
 |------|------|
-| `menu-prototip_8.html` | Цялото frontend приложение (UI + логика) |
-| `local-server.mjs` | HTTP сървър: сервира менюто, health check, Viber proxy |
-| `test-viber.mjs` | Изолиран тест за изпращане на Viber съобщение |
-| `Dockerfile` | Контейнер за деплой (Coolify) |
-| `package.json` | Скриптове `start` / `test:viber` |
-| `secrets.local.json.example` | Шаблон за локални тайни |
+| `menu-prototip_8.html` | Frontend (UI + логика) |
+| `local-server.mjs` | HTTP сървър + API + Viber |
+| `test-viber.mjs` | Изолиран Viber тест |
+| `Dockerfile` | Production контейнер |
+| `docker-compose.yml` | Локален dev с volume |
+| `docs/` | Архитектура, API, roadmap, одит |
 
 ---
 
-## Конфигурация (environment променливи)
+## Roadmap
 
-Сървърът чете конфигурацията **по приоритет**: първо env променливи (продукция),
-после `secrets.local.json` (локална разработка).
-
-| Променлива | Описание | Пример |
-|------------|----------|--------|
-| `INFOBIP_BASE_URL` | Base host от Infobip | `xxxxx.api.infobip.com` |
-| `INFOBIP_API_KEY` | App ключът от Infobip | `App ...` (само стойността) |
-| `INFOBIP_SENDER` | Одобрен подател (trial: `IBSelfServe`) | `IBSelfServe` |
-| `PORT` | Порт за слушане (Coolify го подава) | `3000` |
-| `MENU_FILE` | Име на HTML файла | `menu-prototip_8.html` |
-
-> Менюто работи и без Viber конфигурация — тогава реални съобщения просто не се пращат
-> (`/api/send-viber` връща `503`), а демо toast-овете се показват нормално.
+Виж [docs/ROADMAP.md](docs/ROADMAP.md) — следваща стъпка: **реална Янак интеграция**.
 
 ---
 
-## Локално стартиране
+## Лиценз
 
-```bash
-# 1) (по желание) тайни за реален Viber
-cp secrets.local.json.example secrets.local.json
-#    после попълни ключовете
-
-# 2) старт
-npm start          # или: node local-server.mjs
-# → http://localhost:3000
-
-# тест на Viber отделно
-npm run test:viber
-```
-
----
-
-## Деплой на Coolify
-
-Приложението няма външни зависимости и се деплойва като Docker контейнер.
-
-1. **Качи кода в Git** (GitHub/GitLab). Увери се, че `secrets.local.json` **не**
-   е в репото (вече е в `.gitignore`).
-2. В Coolify: **New Resource → Application → Public/Private Repository**.
-3. **Build Pack:** `Dockerfile` (Coolify ще го засече автоматично).
-4. **Port:** `3000` (стойността от `EXPOSE` / `PORT`).
-5. **Environment Variables** (раздел Environment):
-   ```
-   INFOBIP_BASE_URL=xxxxx.api.infobip.com
-   INFOBIP_API_KEY=твоят_ключ
-   INFOBIP_SENDER=IBSelfServe
-   ```
-   `PORT` обикновено се подава от Coolify — не е нужно да го задаваш ръчно.
-6. **Health check path:** `/healthz` (връща `{ "ok": true }`).
-7. **Deploy.** Закачи домейн от UI; Coolify поема HTTPS-а.
-
-### Бележки
-- В Infobip **trial** режим: номерът на получателя трябва да е верифициран, а
-  подателят трябва да е `IBSelfServe`.
-- `Dockerfile` ползва `node:22-alpine` и копира само нужните за изпълнение файлове.
-
----
-
-## Какво предстои (TODO)
-- Реална интеграция с Янак API вместо mock `YanakAPI`.
-- Сигурност/auth за режим Администрация.
-- Сървърно (а не само локално) съхранение на поръчки и статуси.
+[MIT](LICENSE) · Разработено от [BLV Systems](https://blv.bg)

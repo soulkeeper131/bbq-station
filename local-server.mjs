@@ -8,6 +8,10 @@
 //        INFOBIP_SENDER     одобреният подател (в trial: IBSelfServe)
 //        PORT               порт за слушане (Coolify го подава автоматично)
 //        MENU_FILE          име на HTML файла (по подразбиране menu-prototip_8.html)
+//        PUBLIC_URL         публичен домейн за тракинг линкове във Viber
+//        DATA_DIR           persistent volume (orders, menu, uploads)
+//        DEMO_MODE          false = скрива демо UI и client logging
+//        ADMIN_API_KEY      ключ за админ API (menu, images, order updates)
 //   2) secrets.local.json в същата папка (за локална разработка)
 //
 // Локално стартиране:  node local-server.mjs  →  http://localhost:3000
@@ -27,6 +31,7 @@ function loadConfig() {
     baseUrl: process.env.INFOBIP_BASE_URL || fileCfg.baseUrl || "",
     apiKey: process.env.INFOBIP_API_KEY || fileCfg.apiKey || "",
     sender: process.env.INFOBIP_SENDER || fileCfg.sender || "",
+    adminApiKey: process.env.ADMIN_API_KEY || fileCfg.adminApiKey || "",
     // Публичният адрес на сайта — за да са верни тракинг линковете във Viber,
     // независимо откъде се управлява поръчката (напр. localhost).
     publicUrl: (process.env.PUBLIC_URL || fileCfg.publicUrl || "").replace(/\/+$/, ""),
@@ -34,6 +39,9 @@ function loadConfig() {
 }
 
 const cfg = loadConfig();
+const ADMIN_API_KEY = cfg.adminApiKey;
+const DEMO_MODE = !["0", "false", "no"].includes(String(process.env.DEMO_MODE || "").toLowerCase());
+const BODY_MAX = 8 * 1024 * 1024;
 const PORT = Number(process.env.PORT) || 3000;
 const MENU_FILE = process.env.MENU_FILE || "menu-prototip_8.html";
 const HTML = new URL(`./${MENU_FILE}`, import.meta.url);
@@ -48,12 +56,35 @@ const ts = () => {
 };
 const log = (tag, ...rest) => console.log(`${ts()} ${tag}`, ...rest);
 
-function readBody(req) {
-  return new Promise((resolve) => {
+function readBody(req, max = BODY_MAX) {
+  return new Promise((resolve, reject) => {
     let body = "";
-    req.on("data", (c) => (body += c));
+    req.on("data", (c) => {
+      body += c;
+      if (body.length > max) {
+        req.destroy();
+        reject(new Error("payload too large"));
+      }
+    });
     req.on("end", () => resolve(body));
+    req.on("error", reject);
   });
+}
+
+function adminKeyFrom(req) {
+  const h = req.headers["x-admin-key"];
+  if (typeof h === "string" && h) return h;
+  const auth = req.headers.authorization || "";
+  const m = /^Bearer\s+(.+)$/i.exec(auth);
+  return m ? m[1] : "";
+}
+
+function requireAdmin(req, res) {
+  if (!ADMIN_API_KEY) return true;
+  if (adminKeyFrom(req) === ADMIN_API_KEY) return true;
+  res.writeHead(401, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "unauthorized" }));
+  return false;
 }
 
 // Поръчки: в паметта + orders.json на volume (оцеляват след рестарт/деплой).
@@ -116,6 +147,39 @@ const saveOrders = () => {
     console.warn("⚠️  Грешка при запис на поръчки:", String(e));
   }
 };
+
+function normalizePhoneServer(p) {
+  let d = String(p || "").replace(/[^\d]/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("0")) d = "359" + d.slice(1);
+  return d;
+}
+
+async function sendViberMessage(to, text) {
+  if (!viberReady || !to || !text) return;
+  let msg = text;
+  if (cfg.publicUrl) msg = msg.replace(/https?:\/\/[^/\s]+(?=\/\?track=)/g, cfg.publicUrl);
+  const r = await fetch(`https://${cfg.baseUrl}/viber/2/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `App ${cfg.apiKey}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      messages: [{ sender: cfg.sender, destinations: [{ to }], content: { type: "TEXT", text: msg } }],
+    }),
+  });
+  log(`[viber] server → ${to} HTTP ${r.status}`);
+}
+
+function welcomeViberText(o) {
+  const id = o.docID;
+  const origin = cfg.publicUrl || "";
+  const track = origin ? `${origin}/?track=${id}` : `/?track=${id}`;
+  return `Получихме поръчката ти #${id}.\nЩе те уведомим, щом е готова.\n🔗 Проследи статуса: ${track}`;
+}
+
 loadOrders();
 
 log("[boot]", `Viber ${viberReady ? "конфигуриран ✓" : "НЕ е конфигуриран ✗"} | sender=${cfg.sender || "—"} | host=${cfg.baseUrl || "—"}`);
@@ -123,6 +187,7 @@ log("[boot]", `Снимки: ${Object.keys(productImages).length} в ${DATA_DIR}
 log("[boot]", `Поръчки: ${orders.size} в ${DATA_DIR}`);
 log("[boot]", `Меню overrides: ${menuOverrides.customItems.length} ръчни · ${Object.keys(menuOverrides.patches).length} промени · ${menuOverrides.hidden.length} скрити`);
 log("[boot]", `Публичен адрес за линкове: ${cfg.publicUrl || "— (ползва се origin-ът на клиента)"}`);
+log("[boot]", `Режим: ${DEMO_MODE ? "демо" : "продукция"} | Admin API: ${ADMIN_API_KEY ? "задължителен" : "изключен (dev)"}`);
 if (!viberReady) {
   console.warn("⚠️  Viber не е конфигуриран (липсват INFOBIP_* / secrets.local.json). " +
     "Менюто ще работи, но реални съобщения няма да се пращат.");
@@ -132,11 +197,20 @@ const server = createServer(async (req, res) => {
   // Health check за Coolify / load balancer.
   if (req.method === "GET" && (req.url === "/healthz" || req.url === "/health")) {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, viber: viberReady }));
+    return res.end(JSON.stringify({ ok: true, viber: viberReady, demoMode: DEMO_MODE, adminRequired: Boolean(ADMIN_API_KEY) }));
+  }
+
+  if (req.method === "GET" && req.url === "/api/config") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ demoMode: DEMO_MODE, adminRequired: Boolean(ADMIN_API_KEY) }));
   }
 
   // Клиентски събития → единен лог в терминала (поръчки, смяна на статус и т.н.).
   if (req.method === "POST" && req.url === "/api/log") {
+    if (!DEMO_MODE) {
+      res.writeHead(204);
+      return res.end();
+    }
     const body = await readBody(req);
     try {
       const { tag, data } = JSON.parse(body || "{}");
@@ -150,7 +224,11 @@ const server = createServer(async (req, res) => {
 
   // Поръчки: upsert (създаване/обновяване на статус) от клиента/кухнята.
   if (req.method === "POST" && req.url === "/api/orders") {
-    const body = await readBody(req);
+    let body;
+    try { body = await readBody(req); } catch {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "payload too large" }));
+    }
     try {
       const o = JSON.parse(body || "{}");
       if (!o || o.docID === undefined || o.docID === null) {
@@ -158,9 +236,16 @@ const server = createServer(async (req, res) => {
         return res.end(JSON.stringify({ error: "Required: docID" }));
       }
       const id = String(o.docID);
+      const isNew = !orders.has(id);
+      if (!isNew && !requireAdmin(req, res)) return;
       orders.set(id, { ...o, updatedAt: Date.now() });
       saveOrders();
-      log(`[orders] upsert #${id} | статус=${o.status}`);
+      log(`[orders] upsert #${id} | статус=${o.status}${isNew ? " (нова)" : ""}`);
+      if (isNew && o.status === 1 && o.phone) {
+        sendViberMessage(normalizePhoneServer(o.phone), welcomeViberText(o)).catch((e) =>
+          log("[viber] welcome грешка:", String(e))
+        );
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ok: true }));
     } catch (e) {
@@ -171,6 +256,7 @@ const server = createServer(async (req, res) => {
 
   // Всички поръчки (за админ / синхронизация между устройства).
   if (req.method === "GET" && (req.url === "/api/orders" || req.url.startsWith("/api/orders?"))) {
+    if (!requireAdmin(req, res)) return;
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify(ordersList()));
   }
@@ -194,7 +280,12 @@ const server = createServer(async (req, res) => {
     return res.end(JSON.stringify(menuOverrides));
   }
   if (req.method === "POST" && req.url === "/api/menu-overrides") {
-    const body = await readBody(req);
+    if (!requireAdmin(req, res)) return;
+    let body;
+    try { body = await readBody(req); } catch {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "payload too large" }));
+    }
     try {
       const raw = JSON.parse(body || "{}");
       menuOverrides = {
@@ -220,7 +311,12 @@ const server = createServer(async (req, res) => {
 
   // Качване/премахване на снимка за продукт.
   if (req.method === "POST" && req.url === "/api/product-image") {
-    const body = await readBody(req);
+    if (!requireAdmin(req, res)) return;
+    let body;
+    try { body = await readBody(req); } catch {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "payload too large" }));
+    }
     try {
       const { productId, dataUrl } = JSON.parse(body || "{}");
       if (productId === undefined || productId === null) {

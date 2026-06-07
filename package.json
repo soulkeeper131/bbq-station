@@ -1,14 +1,33 @@
 {
   "name": "bbq-station",
-  "version": "0.1.0",
-  "description": "BBQ Station — уеб приложение за поръчки за вземане (меню + Viber известия през Infobip).",
+  "version": "1.0.0",
+  "description": "BBQ Station — pickup order web app with menu, admin, and Viber notifications (Infobip).",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "author": "BLV Systems",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soulkeeper131/bbq-station.git"
+  },
+  "homepage": "https://bbqstation.blv.bg",
+  "bugs": {
+    "url": "https://github.com/soulkeeper131/bbq-station/issues"
+  },
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "start": "node local-server.mjs",
-    "test:viber": "node test-viber.mjs"
-  }
+    "test:viber": "node test-viber.mjs",
+    "check": "node --check local-server.mjs"
+  },
+  "keywords": [
+    "restaurant",
+    "ordering",
+    "pickup",
+    "viber",
+    "infobip",
+    "bbq"
+  ]
 }

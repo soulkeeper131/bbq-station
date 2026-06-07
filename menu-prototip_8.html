@@ -422,6 +422,14 @@
   .trackcode span{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45}
 
   /* ============ ADMIN ============ */
+  .admin-gate{max-width:360px;margin:48px auto 60px;padding:24px 20px;text-align:center;
+    border:1px solid var(--glass-bd);border-radius:18px;background:rgba(255,255,255,.55)}
+  .admin-gate h2{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:600;margin-bottom:8px}
+  .admin-gate p{font-size:13.5px;color:var(--muted);line-height:1.45;margin-bottom:14px}
+  .admin-gate input{width:100%;border:1px solid var(--glass-bd);border-radius:14px;padding:14px;
+    font-family:inherit;font-size:15px;margin-bottom:12px;background:rgba(255,255,255,.6)}
+  .admin-gate .hint{font-size:11.5px;margin-top:12px;margin-bottom:0}
+  .admin-gate code{font-size:11px;background:rgba(70,50,35,.08);padding:2px 6px;border-radius:6px}
   .admin{padding:0 0 60px}
   .admin-head{padding:20px 18px 6px}
   .admin-head h1{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:600;color:var(--ink)}
@@ -753,7 +761,8 @@ const state={
   order:{name:"",phone:"",time:"asap"},
   orders:[], activeOrderId:null, autoSim:false,
   tracking:false, trackInput:false, trackInputVal:"", trackErr:"",
-  adminTab:"products", adminDraft:null,
+  adminTab:"products", adminDraft:null, adminKey:"",
+  runtime:{demoMode:true,adminRequired:false},
   menuOverrides:{customItems:[],patches:{},hidden:[]},
 };
 // Валута: показваме едновременно евро и лева (фиксиран курс 1 € = 1,95583 лв).
@@ -814,9 +823,11 @@ const store={
 };
 function persist(){store.write({orders:state.orders.slice(0,10),activeOrderId:state.activeOrderId});}
 
-// Реален Viber през Vercel backend-а (Infobip). Смени endpoint-а, ако проектът е друг.
-// Доставя реално само ако backend-ът е качен с env променливите, а в trial — номерът е верифициран.
-const VIBER={ endpoint:"/api/send-viber", appToken:"" };
+// Viber през сървърния proxy (Infobip). Първото известие при нова поръчка се праща и от сървъра.
+const VIBER={ endpoint:"/api/send-viber" };
+function adminHeaders(extra={}){const h={...extra};if(state.adminKey)h["X-Admin-Key"]=state.adminKey;return h;}
+function loadAdminKey(){try{state.adminKey=sessionStorage.getItem("bbq_admin_key")||"";}catch(e){state.adminKey="";}}
+function saveAdminKey(k){state.adminKey=k||"";try{if(k)sessionStorage.setItem("bbq_admin_key",k);else sessionStorage.removeItem("bbq_admin_key");}catch(e){}}
 function normalizePhone(p){let d=(p||"").replace(/[^\d]/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="359"+d.slice(1);return d;}
 
 // Единен логинг: пише в конзолата на браузъра И праща към сървъра (/api/log),
@@ -830,7 +841,7 @@ function glog(tag,data){
 async function sendViber(to,text){ if(!VIBER.endpoint||!to){glog("viber:skip",{to,reason:"няма endpoint/телефон"});return;}
   try{
     const r=await fetch(VIBER.endpoint,{method:"POST",
-      headers:{"Content-Type":"application/json",...(VIBER.appToken?{"x-app-token":VIBER.appToken}:{})},
+      headers:adminHeaders({"Content-Type":"application/json"}),
       body:JSON.stringify({to,text})});
     const body=await r.text().catch(()=>"");
     glog("viber:result",{to,httpStatus:r.status,ok:r.ok,response:body.slice(0,300)});
@@ -839,7 +850,7 @@ async function sendViber(to,text){ if(!VIBER.endpoint||!to){glog("viber:skip",{t
 
 // ── Синхронизация на поръчките със сървъра (за тракинг линка от друго устройство) ──
 function saveOrderToServer(o){
-  try{fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},
+  try{fetch("/api/orders",{method:"POST",headers:adminHeaders({"Content-Type":"application/json"}),
     body:JSON.stringify(o),keepalive:true});}catch(e){}
 }
 async function fetchOrderFromServer(docID){
@@ -847,7 +858,7 @@ async function fetchOrderFromServer(docID){
     if(!r.ok)return null;return await r.json();}catch(e){return null;}
 }
 async function fetchAllOrdersFromServer(){
-  try{const r=await fetch("/api/orders");
+  try{const r=await fetch("/api/orders",{headers:adminHeaders()});
     if(!r.ok)return null;const arr=await r.json();
     return Array.isArray(arr)?arr:null;}catch(e){return null;}
 }
@@ -900,7 +911,7 @@ function applyMenuOverrides(seedItems,ov){
 }
 async function persistMenuOverrides(){
   const body={customItems:state.menuOverrides.customItems,patches:state.menuOverrides.patches,hidden:state.menuOverrides.hidden};
-  const r=await fetch("/api/menu-overrides",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const r=await fetch("/api/menu-overrides",{method:"POST",headers:adminHeaders({"Content-Type":"application/json"}),body:JSON.stringify(body)});
   if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||"неуспешен запис на менюто");}
 }
 function isCustomItem(id){return state.menuOverrides.customItems.some(c=>c.id===id);}
@@ -917,6 +928,12 @@ function groupName(gid){return(state.groups.find(g=>g.id===gid)||{}).name||"—"
 
 async function boot(){
   if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";document.body.appendChild(t);}
+  loadAdminKey();
+  try{
+    const rc=await fetch("/api/config");
+    if(rc.ok)state.runtime=await rc.json();
+  }catch(e){}
+  if(!state.runtime.demoMode&&new URLSearchParams(location.search).get("admin")==="1")state.mode="admin";
   state.groups=await YanakAPI.getGroups();
   const seed=await YanakAPI.getStocks();
   seed.forEach(i=>{if(i.available===undefined)i.available=true;});
@@ -1074,12 +1091,15 @@ async function placeOrder(){
   glog("order:submit",payload);
   const res=await YanakAPI.createOrder(payload);
   const rec={docID:res.docID,name:state.order.name,phone:state.order.phone,time:state.order.time,
-    lines:state.cart.map(l=>({name:l.name,qty:l.qty,summary:l.summary,garnishes:l.garnishes||[],note:l.note})),total:cartTotal(),status:0,notifs:[]};
+    lines:state.cart.map(l=>({name:l.name,qty:l.qty,summary:l.summary,garnishes:l.garnishes||[],note:l.note})),total:cartTotal(),status:1,notifs:[]};
   glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
     lines:rec.lines.map(lineLabel),total:rec.total});
   state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
+  const inf=statusInfo(1);
+  if(inf){const e={channel:inf.channel,toast:inf.toast,text:messageFor(rec,1),docID:res.docID,time:nowHM()};
+    rec.notifs.push(e);toast(e);glog("notify:viber:server",{docID:res.docID,reason:"първо известие от сървъра"});}
   saveOrderToServer(rec);
-  setStatus(res.docID,1);
+  state.cart=[];persist();render();
 }
 let simTimer=null;
 const nowHM=()=>{const d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);};
@@ -1166,11 +1186,11 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
     // text = точният текст, който се праща (показва се 1:1 в лога и на екрана).
     const e={channel:inf.channel,toast:inf.toast,text:messageFor(o,s),docID,time:nowHM()};
     o.notifs.push(e);toast(e);
-    if(o.phone){
+    if(o.phone&&s!==1){
       const phone=normalizePhone(o.phone);
       glog("notify:viber",{docID,to:phone,text:e.text});
       sendViber(phone,e.text);
-    } else {
+    } else if(!o.phone){
       glog("notify:viber:skip",{docID,reason:"няма телефон"});
     }
   }
@@ -1235,7 +1255,9 @@ function trackBanner(){
 
 function appFooter(){return `<footer class="site-footer">Разработено от <a href="https://blv.bg" target="_blank" rel="noopener">BLV Systems</a></footer>`;}
 
-function demobar(){return `<div class="demobar"><b>Демо</b>
+function demobar(){
+  if(!state.runtime.demoMode)return "";
+  return `<div class="demobar"><b>Демо</b>
   <div class="seg">
     <button class="${state.mode==='client'?'on':''}" data-mode="client">🍽️ Клиент</button>
     <button class="${state.mode==='admin'?'on':''}" data-mode="admin">⚙️ Администрация</button>
@@ -1352,8 +1374,8 @@ function cartPanel(){
   if(state.view==="checkout"){
     title="Данни за вземане";backCls="show-d";const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
     inner=`<div class="panel-scroll">
-      <div class="field"><label>Име за поръчката</label><input id="f-name" value="${o.name}" placeholder="напр. Иван"></div>
-      <div class="field"><label>Телефон за нотификация</label><input id="f-phone" value="${o.phone}" placeholder="+359 ..." inputmode="tel"></div>
+      <div class="field"><label>Име за поръчката</label><input id="f-name" value="${esc(o.name)}" placeholder="напр. Иван"></div>
+      <div class="field"><label>Телефон за нотификация</label><input id="f-phone" value="${esc(o.phone)}" placeholder="+359 ..." inputmode="tel"></div>
       <div class="field"><label>Кога ще вземете поръчката?</label><div class="time-opts">
         <div class="time-opt ${o.time==='asap'?'sel':''}" data-time="asap">Сега</div>
         <div class="time-opt ${o.time==='30'?'sel':''}" data-time="30">След 30 мин</div>
@@ -1361,7 +1383,7 @@ function cartPanel(){
         <div class="time-opt ${o.time==='60'?'sel':''}" data-time="60">След 1 час</div></div></div>
       <div class="pay-note"><span class="ic">💳</span><div><b>Плащане само на място — с карта или в брой.</b></div></div>
       <div class="orderbox"><div class="ob-h">🧾 Вашата поръчка</div>
-        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${l.name}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):(linePortionText(l)?`<span class="li-opt">${linePortionText(l)}</span>`:"")}${l.note?`<span class="li-note">📝 ${l.note}</span>`:""}</div>`).join("")}
+        ${state.cart.map(l=>`<div class="ol-line"><div class="ol-top"><span class="ol-nm">${l.qty}× ${esc(l.name)}</span><span class="ol-pr">${moneyHTML(l.lineTotal)}</span></div>${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):(linePortionText(l)?`<span class="li-opt">${esc(linePortionText(l))}</span>`:"")}${l.note?`<span class="li-note">📝 ${esc(l.note)}</span>`:""}</div>`).join("")}
         <div class="ob-total"><span>Общо</span>${moneyStackHTML(cartTotal())}</div></div></div>
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
@@ -1404,7 +1426,7 @@ function confirmView(){
     <div class="check-circle">${done?'🎉':'✓'}</div>
     <h2>${done?'Поръчката е готова!':'Благодарим!'}</h2>
     <div class="ordno">Номер на поръчка: <b>#${o.docID}</b></div>
-    <div class="ordno">за ${o.name||'клиент'}</div>
+    <div class="ordno">за ${esc(o.name||'клиент')}</div>
     ${orderBox}
     ${venueCard()}
     <div class="vibebox"><div class="av ${last&&last.channel==='sms'?'sms':''}">${last&&last.channel==='sms'?'✉':'V'}</div>
@@ -1412,7 +1434,7 @@ function confirmView(){
     <div class="stepper">${stepsHtml}</div>
     ${o.notifs&&o.notifs.length?`<div class="nlog"><div class="nlog-h">Изпратени известия</div>${logHtml}</div>`:""}
     <div class="trackcode">Код за проследяване: <b>#${o.docID}</b><span>Запази го — линкът към статуса е и в твоето Viber/SMS известие, така че можеш да се върнеш по всяко време.</span></div>
-    ${!done?`<button class="btn-primary" id="autoSim" ${state.autoSim?'disabled':''} style="margin-top:18px">
+    ${!done&&state.runtime.demoMode?`<button class="btn-primary" id="autoSim" ${state.autoSim?'disabled':''} style="margin-top:18px">
         <span>${state.autoSim?'⏳ Симулира се…':'▶ Пусни демо на целия път'}</span></button>
       <button class="sim-btn" id="sim" ${state.autoSim?'disabled':''}>→ Само една стъпка напред</button>`:""}
     ${state.tracking?`<button class="link-btn" id="backMenu">← Обратно към менюто</button>`:`<button class="link-btn" id="newOrder">Нова поръчка</button>`}</div>`;
@@ -1420,6 +1442,7 @@ function confirmView(){
 
 /* ---------------- ADMIN ---------------- */
 function adminView(){
+  if(state.runtime.adminRequired&&!state.adminKey)return `<div class="admin">${adminGate()}</div>`;
   return `<div class="admin"><div class="admin-head"><h1>Администрация</h1>
       <p>BBQ Station · управление на менюто и поръчките</p></div>
     <div class="admin-wrap">
@@ -1463,7 +1486,7 @@ function adminOrders(){
   const advText=["","▶ Започни приготвяне","✓ Маркирай готова","📦 Маркирай взета",""];
   return state.orders.map(o=>`<div class="ordcard">
     <div class="oh"><b>#${o.docID}</b><span style="font-family:'Unbounded',sans-serif;font-weight:600">${money(o.total)}</span></div>
-    <div class="who">${o.name||'клиент'} · ${o.phone||'—'} · ⏰ ${pickupText(o)}</div>
+    <div class="who">${esc(o.name||'клиент')} · ${esc(o.phone||'—')} · ⏰ ${pickupText(o)}</div>
     <div class="items">${orderLinesHTML(o)}</div>
     <div class="statline"><span class="pill ${pillCls[o.status]}">${labels[o.status]}</span>
       ${o.status<4?`<button class="adv" data-adv="${o.docID}">${advText[o.status]}</button>`:`<span style="font-size:12px;color:var(--muted);margin-left:auto">✓ завършена</span>`}
@@ -1493,6 +1516,14 @@ function readEditorFields(){
   const gn=document.getElementById("pf-garnish");if(gn)d.garnishable=gn.checked;
 }
 function escField(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+const esc=escField;
+function adminGate(){
+  if(!state.runtime.adminRequired||state.adminKey)return "";
+  return `<div class="admin-gate"><h2>Администрация</h2><p>Въведи администраторски ключ за достъп до кухнята и менюто.</p>
+    <input id="adminKeyIn" type="password" placeholder="Admin API ключ" autocomplete="current-password">
+    <button class="btn-primary compact" id="adminKeyGo" type="button">Вход</button>
+    <p class="hint">В продукция админът е на <code>?admin=1</code> — не споделяй линка публично.</p></div>`;
+}
 function editorFieldsHTML(d){
   const opts=state.groups.map(g=>`<option value="${g.id}" ${d.groupID===g.id?"selected":""}>${g.name}</option>`).join("");
   return `<div class="prod-fields">
@@ -1541,7 +1572,7 @@ async function uploadProductImage(productId,file){
       throw new Error("Файлът не е снимка");
     const packShot=packShotForProduct(productId);
     const dataUrl=await fileToResizedDataUrl(file,800,.82,{packShot});
-    const r=await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
+    const r=await fetch("/api/product-image",{method:"POST",headers:adminHeaders({"Content-Type":"application/json"}),
       body:JSON.stringify({productId,dataUrl})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.url) throw new Error(j.error||"неуспешно качване");
@@ -1552,7 +1583,7 @@ async function uploadProductImage(productId,file){
 }
 async function removeProductImage(productId){
   try{
-    await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
+    await fetch("/api/product-image",{method:"POST",headers:adminHeaders({"Content-Type":"application/json"}),
       body:JSON.stringify({productId,dataUrl:null})});
     delete state.productImages[productId];
     glog("admin:image:remove",{productId});
@@ -1685,9 +1716,12 @@ function bindClient(){
   document.querySelectorAll("[data-track]").forEach(b=>b.onclick=()=>trackOrder(+b.dataset.track));
   const tt=document.getElementById("trackToggle");if(tt)tt.onclick=()=>{state.trackInput=true;render();};
   const tn=document.getElementById("trackNum");if(tn)tn.oninput=e=>{state.trackInputVal=e.target.value;};
-  const tg=document.getElementById("trackGo");if(tg)tg.onclick=()=>{const n=parseInt(state.trackInputVal,10);
-    const o=state.orders.find(x=>x.docID===n);
-    if(o){trackOrder(n);}else{state.trackErr="Поръчка #"+(state.trackInputVal||"?")+" не е намерена на това устройство. В реалната версия линкът от известието я зарежда от Янак.";render();}};
+  const tg=document.getElementById("trackGo");if(tg)tg.onclick=async()=>{const n=parseInt(state.trackInputVal,10);
+    if(!n||n<1){state.trackErr="Въведи валиден номер на поръчка.";render();return;}
+    let o=state.orders.find(x=>x.docID===n);
+    if(!o){const fresh=await fetchOrderFromServer(n);
+      if(fresh){state.orders.unshift(fresh);o=fresh;persist();}}
+    if(o){trackOrder(n);}else{state.trackErr="Поръчка #"+n+" не е намерена. Отвори линка от Viber известието или провери номера.";render();}};
 }
 function bindConfirm(){
   const o=state.orders.find(x=>x.docID===state.activeOrderId);
@@ -1698,6 +1732,10 @@ function bindConfirm(){
     state.order={name:"",phone:"",time:"asap"};state.activeOrderId=null;state.tracking=false;persist();render();};
 }
 function bindAdmin(){
+  const ak=document.getElementById("adminKeyGo");
+  if(ak)ak.onclick=()=>{const v=(document.getElementById("adminKeyIn")?.value||"").trim();
+    if(!v){alert("Въведи администраторски ключ.");return;}
+    saveAdminKey(v);render();};
   document.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{state.adminTab=b.dataset.atab;render();});
   const ap=document.getElementById("addProd");if(ap)ap.onclick=openNewProduct;
   document.querySelectorAll("[data-edit]").forEach(r=>r.onclick=()=>openEditor(+r.dataset.edit));
