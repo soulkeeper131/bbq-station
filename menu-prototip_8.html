@@ -255,7 +255,7 @@
     display:flex;flex-direction:column;transition:transform .3s cubic-bezier(.22,1,.36,1)}
   .panel.show{transform:translateX(50%)}
   .panel-head{background:rgba(255,255,255,.55);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-    color:var(--ink);padding:max(18px,env(safe-area-inset-top)) 20px 18px;display:flex;align-items:center;gap:14px;
+    color:var(--ink);padding:max(14px,env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px;
     border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
   .panel-head .back{background:rgba(70,50,35,.06);border:1px solid var(--glass-bd);color:var(--ink);width:40px;height:40px;
     border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;
@@ -263,7 +263,11 @@
   .panel-head .back:hover{background:rgba(70,50,35,.12)}
   .panel-head .back:active{transform:scale(.92)}
   .panel-head .back svg{display:block;margin-right:1px}
-  .panel-head h2{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:600}
+  .panel-head h2{font-family:'Golos Text',sans-serif;font-size:16px;font-weight:700;flex:1;min-width:0}
+  .panel-close{width:34px;height:34px;border-radius:50%;border:none;background:rgba(70,50,35,.06);
+    color:var(--ink);font-size:16px;line-height:1;cursor:pointer;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;transition:background .15s}
+  .panel-close:hover{background:rgba(70,50,35,.12)}
   .panel-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 20px}
   .cart-line{padding:16px 0;border-bottom:1px solid var(--line)}
   .cart-line .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -290,8 +294,11 @@
     font-size:11.5px;color:var(--muted);letter-spacing:.02em;line-height:1.5}
   .site-footer a{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(210,90,42,.35)}
   .site-footer a:hover{color:var(--ember);border-bottom-color:var(--ember)}
-  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty{text-align:center;padding:70px 20px;color:var(--muted);font-size:14px;line-height:1.45}
   .empty .big{font-size:50px;margin-bottom:14px;opacity:.5}
+  .empty-compact{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px 20px 36px;
+    text-align:left;color:var(--muted);font-size:13.5px;line-height:1.35}
+  .empty-compact .empty-ic{font-size:22px;opacity:.38;line-height:1;flex:0 0 auto}
 
   .field{margin-top:16px}
   .field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:var(--ink)}
@@ -563,10 +570,28 @@
       display:flex;flex-direction:column;min-width:0}
     .panel.show{transform:none}
     .panel-head{border-radius:20px 20px 0 0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;
-      color:var(--ink);border-bottom:1px solid var(--line);padding:14px 14px;min-width:0}
-    .panel-head h2{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      color:var(--ink);border-bottom:1px solid var(--line);padding:10px 14px;min-width:0}
+    .panel-head h2{font-family:'Golos Text',sans-serif;font-size:14px;font-weight:700;flex:1;min-width:0;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .panel-head .back{display:none}
     .panel-head .back.show-d{display:flex;background:var(--line);color:var(--ink)}
+    .panel.panel-side-empty .panel-head{display:none}
+    .panel.panel-side-empty{border-radius:20px;flex:0 0 auto;align-self:start}
+    .panel.panel-side-empty .empty-compact{padding:16px 14px 18px;font-size:12.5px;gap:8px}
+    .panel.panel-side-empty .empty-compact .empty-ic{font-size:18px;opacity:.34}
+    /* Телефон ландшафт: кошницата остава отстрани, но checkout е на цял екран (формата е тясна в колонката). */
+    body.checkout-full{overflow:hidden}
+    .panel.panel-checkout-full{position:fixed;top:0;right:50%;left:auto;transform:translateX(50%) translateX(520px);
+      width:100%;max-width:520px;height:100dvh;max-height:none;z-index:80;margin-top:0;border:none;border-radius:0;
+      box-shadow:none;background:var(--cream);overflow:hidden}
+    .panel.panel-checkout-full.show{transform:translateX(50%)}
+    .panel.panel-checkout-full .panel-head{border-radius:0;background:rgba(255,255,255,.55);
+      -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);padding:max(14px,env(safe-area-inset-top)) 16px 12px}
+    .panel.panel-checkout-full .panel-head h2{font-family:'Golos Text',sans-serif;font-size:16px;font-weight:700}
+    .panel.panel-checkout-full .panel-head .back.show-d{display:flex;background:rgba(70,50,35,.06);border:1px solid var(--glass-bd)}
+    .panel.panel-checkout-full .panel-scroll{flex:1;max-height:none;padding:8px 20px}
+    .panel.panel-checkout-full .sheet-foot{padding:14px 20px max(22px,env(safe-area-inset-bottom))}
+    .panel.panel-checkout-full .field input,.panel.panel-checkout-full .field select{font-size:16px}
     .panel-scroll{min-height:0;flex:1 1 auto;overflow-x:hidden;overflow-y:auto;max-height:calc(100dvh - 240px);padding:6px 14px}
     .panel .sheet-foot{padding:12px 14px max(14px,env(safe-area-inset-bottom))}
     .panel .sheet-foot .btn-primary.split{flex-direction:row;align-items:center;gap:10px;font-size:14px}
@@ -580,7 +605,13 @@
     .sheet{left:50%;top:50%;bottom:auto;width:min(470px,92vw);max-height:86dvh;border:1px solid var(--glass-bd);
       border-radius:24px;transform:translate(-50%,-46%) scale(.97);opacity:0}
     .sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1}
-    .sheet-hero{border-radius:24px 24px 0 0}
+    .sheet-hero{height:auto;min-height:0;padding:12px 14px 12px 16px;align-items:center;justify-content:space-between;
+      gap:10px;background:transparent;border-bottom:1px solid var(--line);border-radius:24px 24px 0 0}
+    .sheet-hero .emoji{display:none}
+    .sheet-hero.has-img{height:auto;background-image:none!important}
+    .sheet-hero.has-img::before,.sheet-hero.has-img.pack-shot::before{display:none}
+    .sheet-hero h2{position:static;color:var(--ink);font-size:17px;max-width:none;text-shadow:none;flex:1;min-width:0}
+    .sheet-close{position:static;width:32px;height:32px;font-size:15px;background:rgba(70,50,35,.06);flex:0 0 auto}
     .admin-wrap{max-width:900px;margin:18px auto 0;border-radius:22px;border:1px solid var(--glass-bd)}
     .admin-head{max-width:900px;margin:0 auto}
     .grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
@@ -894,6 +925,10 @@ async function boot(){
     }
   }
   glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
+  let layoutT;
+  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{if(state.mode!=="admin")render();},100);};
+  window.addEventListener("resize",onLayoutChange);
+  window.addEventListener("orientationchange",onLayoutChange);
   render();
 }
 const cartCount=()=>state.cart.reduce((s,l)=>s+l.qty,0);
@@ -1128,12 +1163,20 @@ function render(){
     `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
     floatCart()+sheet()+`</div>`+foot;bindCommon();bindClient();}
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
+  document.body.classList.toggle("checkout-full",state.mode!=="admin"&&state.view==="checkout"&&useCheckoutFullscreen());
   window.scrollTo(0,sy);
   const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
   set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
   requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);});
 }
 function isSidePanelLayout(){return window.matchMedia("(min-width:768px) and (orientation:landscape)").matches;}
+function sideCartColumnWidth(){
+  const w=window.innerWidth;
+  if(w<768)return 0;
+  return w>=960?Math.min(340,w*0.30):Math.min(300,w*0.34);
+}
+function isCheckoutSideLayout(){return isSidePanelLayout()&&sideCartColumnWidth()>=320;}
+function useCheckoutFullscreen(){return isSidePanelLayout()&&!isCheckoutSideLayout();}
 
 function trackBanner(){
   const active=state.orders.find(o=>o.status<4);
@@ -1264,7 +1307,11 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
       <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(modalTotal())}</span></button></div></div>`;}
 
 function cartPanel(){
-  const show=(state.view==="cart"||state.view==="checkout");let inner="";let title="Твоята кошница";let backCls="";
+  const show=(state.view==="cart"||state.view==="checkout");
+  const checkoutFull=state.view==="checkout"&&useCheckoutFullscreen();
+  const side=isSidePanelLayout()&&!checkoutFull;
+  let inner="";let title="Кошница";let backCls="";let closeBtn="";
+  let panelCls="panel"+(show?" show":"")+(checkoutFull?" panel-checkout-full":"");
   if(state.view==="checkout"){
     title="Данни за вземане";backCls="show-d";const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
     inner=`<div class="panel-scroll">
@@ -1282,8 +1329,14 @@ function cartPanel(){
       <div class="sheet-foot"><button class="btn-primary" id="placeBtn" ${ready?'':'disabled'}>
         ${ready?'Изпрати поръчката':'Попълни име и телефон'}</button></div>`;
   } else {
-    if(!state.cart.length){inner=`<div class="empty"><div class="big">🛒</div>Кошницата е празна.<br>Добави нещо вкусно от менюто.</div>`;}
-    else{inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
+    if(!state.cart.length){
+      if(side){panelCls+=" panel-side-empty";inner=`<div class="empty-compact"><span class="empty-ic">🛒</span><span>Добави ястия от менюто</span></div>`;}
+      else{title="Кошница";closeBtn=`<button class="panel-close" id="panelClose" type="button" aria-label="Затвори">✕</button>`;
+        inner=`<div class="empty-compact"><span class="empty-ic">🛒</span><span>Добави ястия от менюто</span></div>`;}
+    }else{
+      if(side)title="Кошница · "+cartCount();
+      else{title="Кошница";closeBtn=`<button class="panel-close" id="panelClose" type="button" aria-label="Затвори">✕</button>`;}
+      inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
         <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyStackHTML(l.lineTotal)}</div></div>
         ${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):`<div class="opts js-portion">${linePortionText(l)}</div>`}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
         <div class="ctrls">${l.garnishes&&l.garnishes.length?`<span class="qty-lock">за промяна — премахни и добави отново</span>`:
@@ -1291,8 +1344,9 @@ function cartPanel(){
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
       <div class="sheet-foot"><button class="btn-primary split" id="toCheckout"><span>Завърши поръчката</span><span class="js-cart-total money-stack">${moneyHTML(cartTotal())}</span></button></div>`;}
   }
-  return `<div class="panel ${show?'show':''}" id="panel"><div class="panel-head">
-      <button class="back ${backCls}" id="panelBack" aria-label="Назад"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>${title}</h2></div>${inner}</div>`;
+  const hideHead=side&&panelCls.includes("panel-side-empty");
+  const head=hideHead?"":`<div class="panel-head"><button class="back ${backCls}" id="panelBack" aria-label="Назад"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>${title}</h2>${closeBtn}</div>`;
+  return `<div class="${panelCls}" id="panel">${head}${inner}</div>`;
 }
 
 function confirmView(){
@@ -1582,6 +1636,7 @@ function bindClient(){
   const note=document.getElementById("note");if(note)note.oninput=e=>{state.modalNote=e.target.value;};
   const ac=document.getElementById("addCart");if(ac)ac.onclick=addToCart;
   const pb=document.getElementById("panelBack");if(pb)pb.onclick=()=>{state.view=(state.view==="checkout")?"cart":"menu";render();};
+  const pc=document.getElementById("panelClose");if(pc)pc.onclick=()=>{state.view="menu";render();};
   document.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>changeQtyCart(+b.dataset.inc,1));
   document.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>changeQtyCart(+b.dataset.dec,-1));
   document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeLine(+b.dataset.rm));
