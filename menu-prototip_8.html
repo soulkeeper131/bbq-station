@@ -126,12 +126,10 @@
     background:radial-gradient(120% 120% at 30% 20%,rgba(255,255,255,.72),rgba(210,154,78,.42));
     border:1px solid var(--glass-bd);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s}
-  /* Снимка без собствен фон → неутрален тъмен, не оранжев градиент. */
-  .card .thumb.has-img{background:#12100e;box-shadow:var(--shadow-card)}
   .card:hover .thumb{transform:scale(1.03)}
   .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
-  .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:8px}
+  .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
   .add-fab{width:36px;height:36px;border-radius:50%;background:var(--ember-tint);border:1px solid rgba(210,90,42,.35);
     display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;color:var(--ember);font-weight:700;
     box-shadow:0 8px 16px -9px rgba(210,90,42,.6);flex:0 0 auto;align-self:center;transition:.15s}
@@ -174,9 +172,9 @@
     border-radius:26px 26px 0 0;display:flex;align-items:flex-end;padding:16px 20px;overflow:hidden}
   .sheet-hero .emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:70px;opacity:.92;
     filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
-  .sheet-hero.has-img{height:172px;background-color:#12100e;background-size:contain;background-repeat:no-repeat;background-position:center}
+  .sheet-hero.has-img{height:172px;background-size:cover;background-position:center}
   .sheet-hero.has-img::before{content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(0,0,0,.02) 40%,rgba(0,0,0,.55))}
+    background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.6))}
   .sheet-hero h2{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:600;color:#fff;z-index:2;max-width:70%;
     text-shadow:0 2px 10px rgba(0,0,0,.25)}
   .sheet-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;
@@ -434,13 +432,11 @@
   .arow:hover .arow-nm{color:var(--ember)}
   .arow .ico{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
     border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;overflow:hidden}
-  .arow .ico.has-img{background:#12100e}
-  .arow .ico .ico-img{width:100%;height:100%;object-fit:contain;display:block;padding:4px;box-sizing:border-box}
+  .arow .ico .ico-img{width:100%;height:100%;object-fit:cover;display:block}
   .img-edit{display:flex;gap:14px;align-items:center;padding:2px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .img-prev{width:84px;height:84px;border-radius:14px;flex:0 0 auto;overflow:hidden;font-size:34px;
     background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));border:1px solid var(--glass-bd);
     display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
-  .img-prev.has{background-color:#12100e;background-size:contain;background-repeat:no-repeat}
   .img-actions{flex:1;min-width:0}
   .img-h{font-weight:700;font-size:13.5px;margin-bottom:8px}
   .img-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
@@ -503,9 +499,27 @@
     font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .adv:disabled{opacity:.4;cursor:default}
 
-  /* ============ TABLET+ (≥768px) — пълна ширина, меню + количка ============ */
-  /* Без pointer:coarse — iPad често докладва fine pointer и иначе остава на 520px лентата. */
-  @media(min-width:768px){
+  /* Таблет портрет — като мобилно: пълна ширина меню, кошница при отваряне (не отстрани). */
+  @media(min-width:768px) and (orientation:portrait){
+    .app{max-width:none;width:100%}
+    .cart-btn{display:inline-flex}
+    .floatcart{display:block}
+    .layout{display:block;padding:0}
+    .panel-rail{display:contents}
+    .panel{position:fixed;top:0;right:50%;transform:translateX(50%) translateX(520px);width:100%;max-width:520px;
+      height:100dvh;max-height:none;border-radius:0;border:none;box-shadow:none;background:var(--cream);
+      display:flex;flex-direction:column}
+    .panel.show{transform:translateX(50%)}
+    .panel-head{border-radius:0;background:rgba(255,255,255,.55);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+    .panel-head .back{display:flex}
+    .panel-scroll{flex:1;max-height:none;padding:8px 20px}
+    .sheet{left:50%;bottom:0;top:auto;width:100%;max-width:520px;border-radius:26px 26px 0 0;
+      transform:translateX(-50%) translateY(102%);opacity:1}
+    .sheet.show{transform:translateX(-50%) translateY(0)}
+  }
+
+  /* Таблет ландшафт / широк екран — меню + количка отстрани. */
+  @media(min-width:768px) and (orientation:landscape){
     .app{max-width:none;width:100%;overflow-x:clip;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
     body.cart-open{overflow:auto}
     header{padding:16px max(10px,env(safe-area-inset-right)) 16px max(10px,env(safe-area-inset-left));border-radius:0}
@@ -558,8 +572,8 @@
     .venue-map{height:200px}
     .site-footer{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
   }
-  /* По-широк екран — две колони меню, по-големи снимки. */
-  @media(min-width:960px){
+  /* По-широк ландшафт — две колони меню, по-големи снимки. */
+  @media(min-width:960px) and (orientation:landscape){
     header{padding:18px max(14px,env(safe-area-inset-right)) 18px max(14px,env(safe-area-inset-left))}
     .brand h1{font-size:30px}
     .layout{gap:16px;padding:12px max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
@@ -581,8 +595,8 @@
     .panel .sheet-foot .btn-primary.split>span:last-child{font-size:14.5px}
     .venue-map{height:220px}
   }
-  /* Широк десктоп — три колони, още по-големи снимки, пълна ширина. */
-  @media(min-width:1280px){
+  /* Широк десктоп (ландшафт) — три колони. */
+  @media(min-width:1280px) and (orientation:landscape){
     .layout{padding:12px max(0px,env(safe-area-inset-right)) 0 max(0px,env(safe-area-inset-left));gap:18px}
     .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 28px}
     .card .thumb{width:148px;height:148px}
@@ -1082,7 +1096,7 @@ function render(){
   requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);syncPanelRail();});
 }
 // Десктоп: горе количката е подравнена, при скрол надолу — вертикално центрирана в екрана.
-function isSidePanelLayout(){return window.matchMedia("(min-width:768px)").matches;}
+function isSidePanelLayout(){return window.matchMedia("(min-width:768px) and (orientation:landscape)").matches;}
 function syncPanelRail(){
   const rail=document.querySelector(".panel-rail");
   if(!rail||!isSidePanelLayout()){rail&&rail.classList.remove("centered");return;}
