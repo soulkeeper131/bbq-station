@@ -66,23 +66,38 @@ const orders = new Map();
 const DATA_DIR = process.env.DATA_DIR || new URL("./data/", import.meta.url).pathname;
 const UPLOAD_DIR = join(DATA_DIR, "uploads");
 const IMAGES_JSON = join(DATA_DIR, "product-images.json");
+const MENU_JSON = join(DATA_DIR, "menu-overrides.json");
 const MIME = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
 const EXT_BY_MIME = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 let productImages = {}; // { [productId]: "/uploads/pXX.jpg" }
+let menuOverrides = { customItems: [], patches: {}, hidden: [] };
 try {
   mkdirSync(UPLOAD_DIR, { recursive: true });
   if (existsSync(IMAGES_JSON)) productImages = JSON.parse(readFileSync(IMAGES_JSON, "utf8")) || {};
+  if (existsSync(MENU_JSON)) {
+    const raw = JSON.parse(readFileSync(MENU_JSON, "utf8")) || {};
+    menuOverrides = {
+      customItems: Array.isArray(raw.customItems) ? raw.customItems : [],
+      patches: raw.patches && typeof raw.patches === "object" ? raw.patches : {},
+      hidden: Array.isArray(raw.hidden) ? raw.hidden : [],
+    };
+  }
 } catch (e) {
-  console.warn("⚠️  Хранилището за снимки не е достъпно:", String(e));
+  console.warn("⚠️  Хранилището за снимки/меню не е достъпно:", String(e));
 }
 const saveImagesIndex = () => {
   try { writeFileSync(IMAGES_JSON, JSON.stringify(productImages)); }
   catch (e) { console.warn("⚠️  Грешка при запис на индекса със снимки:", String(e)); }
 };
+const saveMenuOverrides = () => {
+  try { writeFileSync(MENU_JSON, JSON.stringify(menuOverrides)); }
+  catch (e) { console.warn("⚠️  Грешка при запис на меню overrides:", String(e)); }
+};
 
 log("[boot]", `Viber ${viberReady ? "конфигуриран ✓" : "НЕ е конфигуриран ✗"} | sender=${cfg.sender || "—"} | host=${cfg.baseUrl || "—"}`);
 log("[boot]", `Снимки: ${Object.keys(productImages).length} в ${DATA_DIR}`);
+log("[boot]", `Меню overrides: ${menuOverrides.customItems.length} ръчни · ${Object.keys(menuOverrides.patches).length} промени · ${menuOverrides.hidden.length} скрити`);
 log("[boot]", `Публичен адрес за линкове: ${cfg.publicUrl || "— (ползва се origin-ът на клиента)"}`);
 if (!viberReady) {
   console.warn("⚠️  Viber не е конфигуриран (липсват INFOBIP_* / secrets.local.json). " +
@@ -140,6 +155,30 @@ const server = createServer(async (req, res) => {
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify(o));
+  }
+
+  // Ръчни продукти и промени по менюто (постоянно на volume).
+  if (req.method === "GET" && req.url === "/api/menu-overrides") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify(menuOverrides));
+  }
+  if (req.method === "POST" && req.url === "/api/menu-overrides") {
+    const body = await readBody(req);
+    try {
+      const raw = JSON.parse(body || "{}");
+      menuOverrides = {
+        customItems: Array.isArray(raw.customItems) ? raw.customItems : [],
+        patches: raw.patches && typeof raw.patches === "object" ? raw.patches : {},
+        hidden: Array.isArray(raw.hidden) ? raw.hidden : [],
+      };
+      saveMenuOverrides();
+      log(`[menu] записани overrides: ${menuOverrides.customItems.length} ръчни, ${Object.keys(menuOverrides.patches).length} patch-а`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true }));
+    } catch (e) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: String(e) }));
+    }
   }
 
   // Снимки на продуктите: целият индекс (продукт → URL).

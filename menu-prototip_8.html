@@ -126,10 +126,12 @@
     background:radial-gradient(120% 120% at 30% 20%,rgba(255,255,255,.72),rgba(210,154,78,.42));
     border:1px solid var(--glass-bd);box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s}
+  /* Снимка без собствен фон → неутрален тъмен, не оранжев градиент. */
+  .card .thumb.has-img{background:#12100e;box-shadow:var(--shadow-card)}
   .card:hover .thumb{transform:scale(1.03)}
   .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
-  .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:8px}
   .add-fab{width:36px;height:36px;border-radius:50%;background:var(--ember-tint);border:1px solid rgba(210,90,42,.35);
     display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;color:var(--ember);font-weight:700;
     box-shadow:0 8px 16px -9px rgba(210,90,42,.6);flex:0 0 auto;align-self:center;transition:.15s}
@@ -172,9 +174,9 @@
     border-radius:26px 26px 0 0;display:flex;align-items:flex-end;padding:16px 20px;overflow:hidden}
   .sheet-hero .emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:70px;opacity:.92;
     filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
-  .sheet-hero.has-img{height:172px;background-size:cover;background-position:center}
+  .sheet-hero.has-img{height:172px;background-color:#12100e;background-size:contain;background-repeat:no-repeat;background-position:center}
   .sheet-hero.has-img::before{content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.6))}
+    background:linear-gradient(180deg,rgba(0,0,0,.02) 40%,rgba(0,0,0,.55))}
   .sheet-hero h2{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:600;color:#fff;z-index:2;max-width:70%;
     text-shadow:0 2px 10px rgba(0,0,0,.25)}
   .sheet-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;
@@ -275,6 +277,10 @@
   .cart-line .rm{margin-left:auto;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;
     text-decoration:underline;font-family:inherit;white-space:nowrap;flex:0 0 auto}
   .amodal-scroll{overflow-x:hidden}
+  .site-footer{text-align:center;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));
+    font-size:11.5px;color:var(--muted);letter-spacing:.02em;line-height:1.5}
+  .site-footer a{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(210,90,42,.35)}
+  .site-footer a:hover{color:var(--ember);border-bottom-color:var(--ember)}
   .empty{text-align:center;padding:70px 20px;color:var(--muted)}
   .empty .big{font-size:50px;margin-bottom:14px;opacity:.5}
 
@@ -411,20 +417,36 @@
   .info-card{display:flex;gap:11px;background:rgba(210,154,78,.16);border:1px solid rgba(210,154,78,.4);
     border-radius:14px;padding:13px;font-size:12.5px;line-height:1.5;margin:8px 0 6px}
   .info-card .ic{font-size:17px}
+  .adm-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px}
+  .adm-sect{margin-top:18px}
+  .adm-sect h3{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--muted);padding:8px 0 4px;border-bottom:1px solid var(--line);margin-bottom:2px}
+  .prod-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .prod-fields .full{grid-column:1/-1}
+  .pf-lbl{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .pf-lbl input,.pf-lbl select,.pf-lbl textarea{border:1px solid var(--glass-bd);border-radius:11px;padding:9px 11px;font-family:inherit;
+    font-size:14px;font-weight:600;background:rgba(255,255,255,.8);color:var(--ink)}
+  .pf-lbl textarea{min-height:64px;resize:vertical;line-height:1.45;font-weight:500}
+  .pf-hint{font-weight:500;color:var(--muted);font-size:10.5px}
+  .pf-chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .pf-chk input{width:18px;height:18px;accent-color:var(--ember)}
   .arow{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
   .arow:hover .arow-nm{color:var(--ember)}
   .arow .ico{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
     border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;overflow:hidden}
-  .arow .ico .ico-img{width:100%;height:100%;object-fit:cover;display:block}
+  .arow .ico.has-img{background:#12100e}
+  .arow .ico .ico-img{width:100%;height:100%;object-fit:contain;display:block;padding:4px;box-sizing:border-box}
   .img-edit{display:flex;gap:14px;align-items:center;padding:2px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .img-prev{width:84px;height:84px;border-radius:14px;flex:0 0 auto;overflow:hidden;font-size:34px;
     background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));border:1px solid var(--glass-bd);
     display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+  .img-prev.has{background-color:#12100e;background-size:contain;background-repeat:no-repeat}
   .img-actions{flex:1;min-width:0}
   .img-h{font-weight:700;font-size:13.5px;margin-bottom:8px}
   .img-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
   .img-hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
   .link-btn.danger{color:#b3402a}
+  .btn-ghost.danger{color:#b3402a;border-color:rgba(179,64,42,.35)}
   .arow-body{flex:1;min-width:0}
   .arow-nm{font-weight:700;font-size:15px;transition:.15s}
   .arow-sub{font-size:12px;color:var(--muted);margin-top:2px}
@@ -481,46 +503,96 @@
     font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
   .adv:disabled{opacity:.4;cursor:default}
 
-  /* ============ DESKTOP ============ */
-  /* Десктоп двуколонният изглед важи само за устройства с мишка (hover + fine pointer).
-     Таблетите (тъч) остават на чистия мобилен изглед, независимо от ширината. */
-  @media(min-width:860px) and (hover:hover) and (pointer:fine){
-    .app{max-width:none;width:100%;overflow:visible;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
-    /* На десктоп количката е страничен панел — НЕ заключваме скрола на страницата. */
+  /* ============ TABLET (широк тъч екран) ============ */
+  /* iPad и таблети: пълна ширина + количка отстрани (не тясна 520px лента с празни полета). */
+  @media(min-width:768px) and (pointer:coarse){
+    .app{max-width:none;width:100%;overflow-x:clip;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
     body.cart-open{overflow:auto}
-    header{padding:18px 20px;border-radius:0}
+    header{padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left))}
+    .brand h1{font-size:28px}
+    .cart-btn{display:none}
+    .floatcart{display:none}
+    .layout{display:flex;gap:12px;align-items:flex-start;width:100%;max-width:100%;box-sizing:border-box;
+      padding:12px max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
+    .main{flex:1;min-width:0;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+      border:1px solid var(--glass-bd);border-radius:20px;padding:2px 16px 14px;box-shadow:var(--shadow)}
+    .tabs{padding:14px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
+      -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -16px;padding-left:16px;padding-right:16px;border-radius:20px 20px 0 0}
+    .menu{padding:8px 0 24px}
+    .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+    .card{gap:14px;padding:16px 0}
+    .card .thumb{width:108px;height:108px;border-radius:18px}
+    .card .thumb span{font-size:46px}
+    .panel-rail{display:flex;flex-direction:column;flex:0 1 min(300px,34vw);width:min(300px,34vw);
+      min-width:0;max-width:36vw;position:sticky;top:46px;height:calc(100dvh - 56px);
+      justify-content:flex-start;align-self:flex-start}
+    .panel-rail.centered{justify-content:center}
+    .panel{position:relative;top:auto;right:auto;left:auto;transform:none;width:100%;flex:0 0 auto;height:auto;z-index:1;
+      max-height:calc(100dvh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:20px;
+      box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+      display:flex;flex-direction:column;min-width:0}
+    .panel.show{transform:none}
+    .panel-head{border-radius:20px 20px 0 0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;
+      color:var(--ink);border-bottom:1px solid var(--line);padding:14px 14px;min-width:0}
+    .panel-head h2{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .panel-head .back{display:none}
+    .panel-head .back.show-d{display:flex;background:var(--line);color:var(--ink)}
+    .panel-scroll{min-height:0;flex:1 1 auto;overflow-x:hidden;overflow-y:auto;max-height:none;padding:6px 14px}
+    .panel .sheet-foot{padding:12px 14px max(14px,env(safe-area-inset-bottom))}
+    .panel .sheet-foot .btn-primary.split{flex-direction:column;align-items:stretch;gap:6px;font-size:14px}
+    .panel .sheet-foot .btn-primary.split>span{text-align:center}
+    .panel .sheet-foot .btn-primary.split>span:last-child{font-size:13.5px}
+    .cart-line .nm{font-size:14.5px}
+    .cart-line .ctrls{flex-wrap:wrap;gap:8px}
+    .cart-line .rm{margin-left:0}
+    .empty{padding:40px 16px}
+    .sheet{left:50%;top:50%;bottom:auto;width:min(470px,92vw);max-height:86dvh;border:1px solid var(--glass-bd);
+      border-radius:24px;transform:translate(-50%,-46%) scale(.97);opacity:0}
+    .sheet.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+    .sheet-hero{border-radius:24px 24px 0 0}
+    .trackbar{margin:0 0 4px}
+    .venue-map{height:200px}
+    .site-footer{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+  }
+
+  /* ============ DESKTOP ============ */
+  @media(min-width:860px) and (hover:hover) and (pointer:fine){
+    .app{max-width:none;width:100%;overflow-x:clip;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+    body.cart-open{overflow:auto}
+    header{padding:18px max(20px,env(safe-area-inset-right)) 18px max(20px,env(safe-area-inset-left));border-radius:0}
     .brand h1{font-size:30px}
     .cart-btn{display:none}
-    .layout{display:flex;gap:18px;align-items:flex-start;padding:14px 16px 0;max-width:none}
+    .layout{display:flex;gap:18px;align-items:flex-start;width:100%;max-width:100%;box-sizing:border-box;
+      padding:14px max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
     .main{flex:1;min-width:0;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
       border:1px solid var(--glass-bd);border-radius:22px;padding:2px 20px 16px;box-shadow:var(--shadow)}
     .tabs{padding:16px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
       -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -20px;padding-left:20px;padding-right:20px;border-radius:22px 22px 0 0}
     .menu{padding:8px 0 24px}
-    /* minmax(0,1fr) позволява колоните да се свиват под min-content на картата,
-       иначе картите налагат ширината си и преливат извън панела. */
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
     .card{gap:16px;padding:18px 0}
     .card .thumb{width:136px;height:136px;border-radius:22px}
     .card .thumb span{font-size:58px}
     .card .name{font-size:17px}
     .floatcart{display:none}
-    /* Rail: sticky колона с височина на екрана — центрира количката при скрол надолу. */
-    .panel-rail{display:flex;flex-direction:column;flex:0 0 min(400px,32vw);width:min(400px,32vw);
-      position:sticky;top:46px;height:calc(100vh - 56px);justify-content:flex-start;align-self:flex-start}
+    .panel-rail{display:flex;flex-direction:column;flex:0 1 min(360px,30vw);width:min(360px,30vw);
+      min-width:0;max-width:36vw;position:sticky;top:46px;height:calc(100vh - 56px);
+      justify-content:flex-start;align-self:flex-start}
     .panel-rail.centered{justify-content:center}
     .panel{position:relative;top:auto;right:auto;left:auto;transform:none;width:100%;flex:0 0 auto;height:auto;z-index:1;
       max-height:calc(100vh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:22px;
-      box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+      box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+      display:flex;flex-direction:column;min-width:0}
     .panel.show{transform:none}
     .panel-head{border-radius:22px 22px 0 0;background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;
-      color:var(--ink);border-bottom:1px solid var(--line);padding:15px 18px}
-    .panel-head h2{font-size:18px}
+      color:var(--ink);border-bottom:1px solid var(--line);padding:15px 18px;min-width:0}
+    .panel-head h2{font-size:18px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .panel-head .back{display:none}
     .panel-head .back.show-d{display:flex;background:var(--line);color:var(--ink)}
-    .panel-scroll{min-height:0;flex:0 1 auto;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 240px);padding:6px 18px}
+    .panel-scroll{min-height:0;flex:1 1 auto;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 240px);padding:6px 18px}
+    .panel .sheet-foot{padding:12px 18px max(16px,env(safe-area-inset-bottom))}
     .cart-line{padding:14px 0}
-    .cart-line .ctrls{flex-wrap:nowrap}
+    .cart-line .ctrls{flex-wrap:wrap;gap:8px}
     .cart-line .rm{white-space:nowrap}
     .empty{padding:46px 20px}
     .sheet{left:50%;top:50%;bottom:auto;width:470px;max-width:92vw;max-height:86vh;border:1px solid var(--glass-bd);
@@ -532,6 +604,13 @@
     .grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
     .trackbar{margin:0 0 4px}
     .venue-map{height:220px}
+  }
+  /* Среден десктоп / iPad с мишка — по-тясна количка, една колона меню. */
+  @media(min-width:860px) and (max-width:1099px) and (hover:hover) and (pointer:fine){
+    .grid{grid-template-columns:minmax(0,1fr)}
+    .panel-rail{flex:0 1 min(280px,32vw);width:min(280px,32vw)}
+    .panel .sheet-foot .btn-primary.split{flex-direction:column;align-items:stretch;gap:6px;font-size:14px}
+    .panel .sheet-foot .btn-primary.split>span{text-align:center}
   }
   /* Широк десктоп — три колони, още по-големи снимки, пълна ширина. */
   @media(min-width:1280px) and (hover:hover) and (pointer:fine){
@@ -582,6 +661,7 @@ const YanakAPI = {
       {id:205,groupID:2,name:"Кьопоолу",basicPrice:1.20,price:1.20,emoji:"🍆",description:"100 г",modifiers:[]},
       {id:206,groupID:2,name:"Домати с краставици",basicPrice:1.20,price:1.20,emoji:"🍅",description:"100 г",modifiers:[]},
       {id:207,groupID:2,name:"Зеле с моркови",basicPrice:0.60,price:0.60,emoji:"🥬",description:"100 г",modifiers:[]},
+      {id:208,groupID:2,name:"Картофена салата",basicPrice:1.20,price:1.20,emoji:"🥔",description:"100 г",modifiers:[]},
       // ── Напитки (безалкохолни + топли) ──
       {id:301,groupID:3,name:"Кока-Кола 0.5 л",basicPrice:1.50,price:1.50,emoji:"🥤",description:"",modifiers:[]},
       {id:302,groupID:3,name:"Кока-Кола 0.33 л",basicPrice:1.30,price:1.30,emoji:"🥤",description:"",modifiers:[]},
@@ -618,6 +698,7 @@ const state={
   orders:[], activeOrderId:null, autoSim:false,
   tracking:false, trackInput:false, trackInputVal:"", trackErr:"",
   adminTab:"products", adminDraft:null,
+  menuOverrides:{customItems:[],patches:{},hidden:[]},
 };
 // Валута: показваме едновременно евро и лева (фиксиран курс 1 € = 1,95583 лв).
 // Цените в данните са в ЛЕВА; еврото се изчислява от тях.
@@ -726,11 +807,53 @@ function startTrackPolling(docID){
 }
 function stopTrackPolling(){if(trackTimer){clearInterval(trackTimer);trackTimer=null;}}
 
+function normalizeMenuItem(it){
+  const p=Number(it.basicPrice)||0;
+  return {...it,basicPrice:p,price:Number(it.price??p)||p,
+    modifiers:Array.isArray(it.modifiers)?it.modifiers:[],
+    available:it.available!==false};
+}
+function applyMenuOverrides(seedItems,ov){
+  const hidden=new Set((ov.hidden||[]).map(Number));
+  let items=seedItems.filter(i=>!hidden.has(i.id)).map(i=>normalizeMenuItem({...i}));
+  Object.entries(ov.patches||{}).forEach(([id,p])=>{
+    const n=Number(id);const it=items.find(x=>x.id===n);
+    if(it)Object.assign(it,normalizeMenuItem({...it,...p,id:n}));
+  });
+  (ov.customItems||[]).forEach(c=>{
+    const item=normalizeMenuItem({...c});
+    const ix=items.findIndex(x=>x.id===item.id);
+    if(ix>=0)items[ix]=item;else items.push(item);
+  });
+  return items;
+}
+async function persistMenuOverrides(){
+  const body={customItems:state.menuOverrides.customItems,patches:state.menuOverrides.patches,hidden:state.menuOverrides.hidden};
+  const r=await fetch("/api/menu-overrides",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||"неуспешен запис на менюто");}
+}
+function isCustomItem(id){return state.menuOverrides.customItems.some(c=>c.id===id);}
+function nextProductId(){
+  const ids=state.items.map(i=>i.id).concat(state.menuOverrides.customItems.map(c=>c.id));
+  return(Math.max(0,...ids,600)+1);
+}
+function itemToStore(it){
+  return{id:it.id,groupID:it.groupID,name:it.name,basicPrice:it.basicPrice,price:it.price??it.basicPrice,
+    emoji:it.emoji||"🍽️",description:it.description||"",modifiers:it.modifiers||[],
+    garnishable:!!it.garnishable,available:it.available!==false};
+}
+function groupName(gid){return(state.groups.find(g=>g.id===gid)||{}).name||"—";}
+
 async function boot(){
   if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";document.body.appendChild(t);}
   state.groups=await YanakAPI.getGroups();
-  state.items=await YanakAPI.getStocks();
-  state.items.forEach(i=>{if(i.available===undefined)i.available=true;}); // Янак: може да идва от quantity или ръчен флаг
+  const seed=await YanakAPI.getStocks();
+  seed.forEach(i=>{if(i.available===undefined)i.available=true;});
+  try{const r=await fetch("/api/menu-overrides");if(r.ok)state.menuOverrides=await r.json()||state.menuOverrides;}catch(e){}
+  if(!state.menuOverrides.customItems)state.menuOverrides.customItems=[];
+  if(!state.menuOverrides.patches)state.menuOverrides.patches={};
+  if(!state.menuOverrides.hidden)state.menuOverrides.hidden=[];
+  state.items=applyMenuOverrides(seed,state.menuOverrides);
   try{const r=await fetch("/api/product-images");if(r.ok)state.productImages=await r.json()||{};}catch(e){}
   const saved=store.read();
   if(saved&&saved.orders){state.orders=saved.orders;state.activeOrderId=saved.activeOrderId||null;}
@@ -977,11 +1100,12 @@ function render(){
   const sy=window.scrollY;
   const grab=s=>{const e=document.querySelector(s);return e?e.scrollTop:0;};
   const psT=grab(".panel-scroll"),ssT=grab(".sheet-scroll"),asT=grab(".amodal-scroll");
-  if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+adminModal();bindCommon();bindAdmin();}
-  else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`;bindCommon();bindConfirm();}
+  const foot=appFooter();
+  if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
+  else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+`<div class="app">`+header()+
     `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
-    floatCart()+sheet()+`</div>`;bindCommon();bindClient();}
+    floatCart()+sheet()+`</div>`+foot;bindCommon();bindClient();}
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
   window.scrollTo(0,sy);
   const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
@@ -989,9 +1113,13 @@ function render(){
   requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);syncPanelRail();});
 }
 // Десктоп: горе количката е подравнена, при скрол надолу — вертикално центрирана в екрана.
+function isSidePanelLayout(){
+  return window.matchMedia("(min-width:768px) and (pointer:coarse)").matches
+    ||window.matchMedia("(min-width:860px) and (hover:hover) and (pointer:fine)").matches;
+}
 function syncPanelRail(){
   const rail=document.querySelector(".panel-rail");
-  if(!rail||!window.matchMedia("(min-width:860px) and (hover:hover) and (pointer:fine)").matches){rail&&rail.classList.remove("centered");return;}
+  if(!rail||!isSidePanelLayout()){rail&&rail.classList.remove("centered");return;}
   const stuck=rail.getBoundingClientRect().top<=48;
   const scrolled=window.scrollY>Math.max(0,rail.offsetTop-60);
   rail.classList.toggle("centered",stuck&&scrolled);
@@ -1014,6 +1142,8 @@ function trackBanner(){
     <button class="tb-go" id="trackGo">Провери</button></div>${state.trackErr?`<div class="tb-err">${state.trackErr}</div>`:''}`:'';
   return `<div class="trackbar ${active?'active':''}">${row}${inp}</div>`;
 }
+
+function appFooter(){return `<footer class="site-footer">Разработено от <a href="https://blv.bg" target="_blank" rel="noopener">BLV Systems</a></footer>`;}
 
 function demobar(){return `<div class="demobar"><b>Демо</b>
   <div class="seg">
@@ -1042,7 +1172,7 @@ function scrollToGroup(gid){
   }
   el.style.scrollMarginTop=margin+"px";
   // scrollIntoView е по-надеждно от window.scrollTo; на десктоп — веднага (smooth често не скролва).
-  const instant=window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+  const instant=isSidePanelLayout();
   el.scrollIntoView({behavior:instant?"auto":"smooth",block:"start"});
 }
 function tabs(){return `<div class="tabs" role="tablist">${state.groups.map(g=>
@@ -1051,7 +1181,8 @@ function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
     items.forEach(it=>{const hasOpt=it.garnishable||(it.modifiers||[]).length>0;const sold=it.available===false;
-      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb">${thumbInner(it)}</div>
+      const hasImg=!!imgFor(it);
+      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb ${hasImg?'has-img':''}">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
         <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(it.garnishable?`<span class="badge-opt">+ гарнитури · хляб</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:""))}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
@@ -1169,18 +1300,29 @@ function adminView(){
       ${state.adminTab==='products'?adminProducts():adminOrders()}
     </div></div>`;
 }
+function adminProductRow(it){
+  const has=(it.modifiers||[]).length>0;const on=it.available!==false;const custom=isCustomItem(it.id);
+  const img=imgFor(it);
+  return `<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico ${img?'has-img':''}">${img?`<img class="ico-img" src="${img}" alt="">`:(it.emoji||"🍽️")}</div>
+    <div class="arow-body"><div class="arow-nm">${it.name}${custom?` <span class="tag has">ръчен</span>`:""}</div>
+      <div class="arow-sub">${money(it.basicPrice)}${it.description?" · "+it.description:""} · ${has?(it.modifiers.length+' групи опции'):'без комбинации'}${it.garnishable?" · + гарнитури":""}</div></div>
+    <div class="switch ${on?'on':''}" data-toggle="${it.id}"><span class="sw-lbl">${on?'Наличен':'Изчерпан'}</span>
+      <span class="track"><span class="knob"></span></span></div>
+    <span class="chev">›</span></div>`;
+}
 function adminProducts(){
   let out=`<div class="info-card"><span class="ic">ℹ️</span><div>
-    <b>Имената, цените и категориите идват от Янак</b> (синхронизират се автоматично).
-    Тук управлявате <b>комбинациите</b> и <b>снимките</b>, и можете бързо да <b>спрете/пуснете</b> ястие, ако се изчерпи.</div></div>`;
+    <b>Добавяйте продукти ръчно</b> и ги слагайте в правилната категория.
+    Промените (име, цена, <b>описание</b>, комбинации, наличност) се <b>запазват на сървъра</b> и оцеляват след предеплой.</div></div>
+    <div class="adm-toolbar"><button class="btn-primary compact" id="addProd" type="button"><span>+ Нов продукт</span></button></div>`;
   out+=`<div class="grid-admin">`;
-  state.items.forEach(it=>{const has=(it.modifiers||[]).length>0;const on=it.available!==false;
-    out+=`<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico">${imgFor(it)?`<img class="ico-img" src="${imgFor(it)}" alt="">`:(it.emoji||"🍽️")}</div>
-      <div class="arow-body"><div class="arow-nm">${it.name}</div>
-        <div class="arow-sub">${money(it.basicPrice)} · ${has?(it.modifiers.length+' групи опции'):'без комбинации'}</div></div>
-      <div class="switch ${on?'on':''}" data-toggle="${it.id}"><span class="sw-lbl">${on?'Наличен':'Изчерпан'}</span>
-        <span class="track"><span class="knob"></span></span></div>
-      <span class="chev">›</span></div>`;});
+  state.groups.forEach(g=>{
+    const items=state.items.filter(i=>i.groupID===g.id).sort((a,b)=>a.id-b.id);
+    if(!items.length)return;
+    out+=`<div class="adm-sect"><h3>${g.name}</h3>`;
+    items.forEach(it=>{out+=adminProductRow(it);});
+    out+=`</div>`;
+  });
   return out+`</div>`;
 }
 function adminOrders(){
@@ -1197,12 +1339,41 @@ function adminOrders(){
       ${o.status>=3&&o.status<4?`<span class="ord-notified">✓ клиентът получи нотификация „готова за вземане"</span>`:''}</div></div>`).join("");
 }
 
-/* admin editor for combinations */
-function openEditor(id){const it=state.items.find(x=>x.id===id);
-  state.adminDraft={productId:id,name:it.name,emoji:it.emoji,basicPrice:it.basicPrice,
-    modifiers:JSON.parse(JSON.stringify(it.modifiers||[]))};state.editorOpen=false;render();
-  // editorOpen=true гарантира, че всеки следващ render (симулация/polling) пази модала отворен.
+/* admin editor — продукт, категория, комбинации */
+function openEditor(id){const it=state.items.find(x=>x.id===id);if(!it)return;
+  state.adminDraft={isNew:false,isCustom:isCustomItem(id),productId:id,name:it.name,emoji:it.emoji||"🍽️",
+    basicPrice:it.basicPrice,groupID:it.groupID,description:it.description||"",garnishable:!!it.garnishable,
+    available:it.available!==false,modifiers:JSON.parse(JSON.stringify(it.modifiers||[]))};
+  state.editorOpen=false;render();
   requestAnimationFrame(()=>{state.editorOpen=true;document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");});}
+function openNewProduct(){
+  state.adminDraft={isNew:true,isCustom:true,productId:nextProductId(),name:"",emoji:"🍽️",basicPrice:0,
+    groupID:state.groups[0]?.id||1,description:"",garnishable:false,available:true,modifiers:[]};
+  state.editorOpen=false;render();
+  requestAnimationFrame(()=>{state.editorOpen=true;document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");});
+}
+function readEditorFields(){
+  const d=state.adminDraft;if(!d)return;
+  const nm=document.getElementById("pf-name");if(nm)d.name=nm.value;
+  const pr=document.getElementById("pf-price");if(pr)d.basicPrice=parseFloat(pr.value)||0;
+  const gr=document.getElementById("pf-group");if(gr)d.groupID=+gr.value;
+  const ds=document.getElementById("pf-desc");if(ds)d.description=ds.value;
+  const em=document.getElementById("pf-emoji");if(em)d.emoji=em.value.trim()||"🍽️";
+  const gn=document.getElementById("pf-garnish");if(gn)d.garnishable=gn.checked;
+}
+function escField(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function editorFieldsHTML(d){
+  const opts=state.groups.map(g=>`<option value="${g.id}" ${d.groupID===g.id?"selected":""}>${g.name}</option>`).join("");
+  return `<div class="prod-fields">
+    <label class="pf-lbl full">Име на продукта<input id="pf-name" value="${escField(d.name)}" placeholder="напр. Картофена салата"></label>
+    <label class="pf-lbl">Цена (лв)<input id="pf-price" type="number" step="0.10" min="0" value="${d.basicPrice??0}"></label>
+    <label class="pf-lbl">Категория<select id="pf-group">${opts}</select></label>
+    <label class="pf-lbl full">Описание <span class="pf-hint">под името в менюто</span>
+      <textarea id="pf-desc" rows="2" placeholder="напр. 100 г · 0.5 л">${escField(d.description)}</textarea></label>
+    <label class="pf-lbl">Емоджи<input id="pf-emoji" maxlength="8" value="${(d.emoji||"🍽️").replace(/"/g,"&quot;")}"></label>
+    <label class="pf-chk"><input id="pf-garnish" type="checkbox" ${d.garnishable?"checked":""}> Скара с избор на гарнитури</label>
+  </div>`;
+}
 function closeEditor(){state.editorOpen=false;document.getElementById("ascrim")?.classList.remove("show");document.getElementById("amodal")?.classList.remove("show");
   setTimeout(()=>{state.adminDraft=null;render();},250);}
 function draftAddGroup(){state.adminDraft.modifiers.push({key:uid(),title:"Нова група",required:false,min:0,max:5,options:[{id:uid(),name:"",delta:0}]});render();keepEditor();}
@@ -1247,10 +1418,54 @@ async function removeProductImage(productId){
   }catch(e){alert("Грешка: "+e.message);}
 }
 
-function saveEditor(){const d=state.adminDraft;const it=state.items.find(x=>x.id===d.productId);
-  // изчистваме празни опции
+async function saveEditor(){
+  const d=state.adminDraft;if(!d)return;
+  readEditorFields();
+  if(!d.name.trim()){alert("Въведете име на продукта.");return;}
   d.modifiers.forEach(g=>{g.options=g.options.filter(o=>o.name.trim()!=="");});
-  it.modifiers=d.modifiers.filter(g=>g.options.length>0);closeEditor();}
+  const mods=d.modifiers.filter(g=>g.options.length>0);
+  const stored=itemToStore({id:d.productId,groupID:d.groupID,name:d.name.trim(),basicPrice:d.basicPrice,
+    price:d.basicPrice,emoji:d.emoji,description:d.description,garnishable:d.garnishable,
+    available:d.available,modifiers:mods});
+  try{
+    if(d.isNew){
+      state.menuOverrides.customItems.push(stored);
+      state.items.push(normalizeMenuItem({...stored}));
+      glog("admin:product:create",stored);
+    }else if(d.isCustom){
+      const ix=state.menuOverrides.customItems.findIndex(c=>c.id===d.productId);
+      if(ix>=0)state.menuOverrides.customItems[ix]=stored;
+      const it=state.items.find(x=>x.id===d.productId);if(it)Object.assign(it,normalizeMenuItem({...stored}));
+      glog("admin:product:update",{id:d.productId});
+    }else{
+      state.menuOverrides.patches[String(d.productId)]={
+        name:stored.name,basicPrice:stored.basicPrice,price:stored.price,groupID:stored.groupID,
+        emoji:stored.emoji,description:stored.description,garnishable:stored.garnishable,
+        available:stored.available,modifiers:stored.modifiers};
+      const it=state.items.find(x=>x.id===d.productId);if(it)Object.assign(it,normalizeMenuItem({...stored}));
+      glog("admin:product:patch",{id:d.productId});
+    }
+    await persistMenuOverrides();
+    closeEditor();
+  }catch(e){alert("Грешка при запис: "+e.message);}
+}
+async function deleteAdminProduct(){
+  const d=state.adminDraft;if(!d||d.isNew)return;
+  const msg=d.isCustom?"Изтриване на този ръчен продукт?":"Скриване на продукта от менюто?";
+  if(!confirm(msg))return;
+  try{
+    if(d.isCustom){
+      state.menuOverrides.customItems=state.menuOverrides.customItems.filter(c=>c.id!==d.productId);
+      delete state.menuOverrides.patches[String(d.productId)];
+    }else if(!state.menuOverrides.hidden.includes(d.productId)){
+      state.menuOverrides.hidden.push(d.productId);
+    }
+    state.items=state.items.filter(i=>i.id!==d.productId);
+    await persistMenuOverrides();
+    glog("admin:product:remove",{id:d.productId,custom:d.isCustom});
+    closeEditor();
+  }catch(e){alert("Грешка: "+e.message);}
+}
 
 function adminModal(){
   const d=state.adminDraft;if(!d)return `<div class="scrim" id="ascrim"></div>`;
@@ -1269,12 +1484,15 @@ function adminModal(){
           <span>лв</span></div><button class="del" data-delo="${gi}" data-oi2="${oi}">✕</button></div>`).join("")}
       <button class="addbtn" data-addo="${gi}">+ Добави опция</button></div>`;});
   const imgD=state.productImages[d.productId]||null;
+  const title=d.isNew?"Нов продукт":`${d.emoji} ${d.name}`;
+  const sub=d.isNew?"Попълни данните и избери категорията":`${groupName(d.groupID)} · ${money(d.basicPrice)}${d.isCustom?" · ръчен продукт":""}`;
   return `<div class="scrim show" id="ascrim"></div>
     <div class="amodal${state.editorOpen?' show':''}" id="amodal">
-      <div class="amodal-head"><div><h2>${d.emoji} ${d.name}</h2>
-        <div class="ro">Име и цена (${money(d.basicPrice)}) се управляват в Янак · тук са комбинациите</div></div>
+      <div class="amodal-head"><div><h2>${title}</h2>
+        <div class="ro">${sub}</div></div>
         <button class="sheet-close" id="aclose" style="position:static">✕</button></div>
       <div class="amodal-scroll">
+        ${editorFieldsHTML(d)}
         <div class="img-edit">
           <div class="img-prev ${imgD?'has':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
           <div class="img-actions"><div class="img-h">Снимка на продукта</div>
@@ -1285,8 +1503,9 @@ function adminModal(){
         </div>
         ${groups||`<p style="color:var(--muted);font-size:13.5px;padding:8px 0">Този продукт няма комбинации. Добави група, за да предложиш избор на гарнитура или добавки.</p>`}
         <button class="addbtn group" id="addg">+ Добави нова група опции</button></div>
-      <div class="amodal-foot"><button class="btn-ghost" id="acancel">Отказ</button>
-        <button class="btn-primary compact" id="asave"><span>Запази промените</span></button></div></div>`;
+      <div class="amodal-foot">${d.isNew?"":`<button class="btn-ghost danger" id="adel" type="button">${d.isCustom?"Изтрий":"Скрий"}</button>`}
+        <button class="btn-ghost" id="acancel">Отказ</button>
+        <button class="btn-primary compact" id="asave"><span>${d.isNew?"Добави продукта":"Запази"}</span></button></div></div>`;
 }
 
 /* ---------------- BINDINGS ---------------- */
@@ -1337,15 +1556,32 @@ function bindConfirm(){
 }
 function bindAdmin(){
   document.querySelectorAll("[data-atab]").forEach(b=>b.onclick=()=>{state.adminTab=b.dataset.atab;render();});
+  const ap=document.getElementById("addProd");if(ap)ap.onclick=openNewProduct;
   document.querySelectorAll("[data-edit]").forEach(r=>r.onclick=()=>openEditor(+r.dataset.edit));
-  document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=e=>{e.stopPropagation();
-    const it=state.items.find(x=>x.id===+b.dataset.toggle);it.available=it.available===false;render();});
+  document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async e=>{e.stopPropagation();
+    const it=state.items.find(x=>x.id===+b.dataset.toggle);if(!it)return;
+    it.available=it.available===false;
+    try{
+      if(isCustomItem(it.id)){
+        const c=state.menuOverrides.customItems.find(x=>x.id===it.id);if(c)c.available=it.available;
+      }else{
+        const p=state.menuOverrides.patches[String(it.id)]||{};
+        p.available=it.available;state.menuOverrides.patches[String(it.id)]=p;
+      }
+      await persistMenuOverrides();
+      glog("admin:product:availability",{id:it.id,available:it.available});
+    }catch(err){alert("Грешка при запис: "+err.message);}
+    render();});
   document.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>advanceOrder(+b.dataset.adv));
   // editor
   const as=document.getElementById("ascrim");if(as)as.onclick=closeEditor;
   const acl=document.getElementById("aclose");if(acl)acl.onclick=closeEditor;
   const acan=document.getElementById("acancel");if(acan)acan.onclick=closeEditor;
-  const asv=document.getElementById("asave");if(asv)asv.onclick=saveEditor;
+  const asv=document.getElementById("asave");if(asv)asv.onclick=()=>saveEditor();
+  const adel=document.getElementById("adel");if(adel)adel.onclick=()=>deleteAdminProduct();
+  const pfg=document.getElementById("pf-group");if(pfg)pfg.onchange=e=>{
+    if(e.target.value==="1"&&state.adminDraft)state.adminDraft.garnishable=true;
+    const gn=document.getElementById("pf-garnish");if(gn&&e.target.value==="1")gn.checked=true;};
   const up=document.getElementById("imgUp");if(up)up.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)uploadProductImage(state.adminDraft.productId,f);};
   const irm=document.getElementById("imgRm");if(irm)irm.onclick=()=>removeProductImage(state.adminDraft.productId);
   const addg=document.getElementById("addg");if(addg)addg.onclick=draftAddGroup;
