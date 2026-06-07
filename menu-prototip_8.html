@@ -547,9 +547,8 @@
     .card .thumb{width:118px;height:118px;border-radius:18px}
     .card .thumb span{font-size:50px}
     .panel-rail{display:flex;flex-direction:column;flex:0 1 min(300px,34vw);width:min(300px,34vw);
-      min-width:0;max-width:38vw;position:sticky;top:46px;height:calc(100dvh - 56px);
-      justify-content:flex-start;align-self:flex-start}
-    .panel-rail.centered{justify-content:center}
+      min-width:0;max-width:38vw;position:sticky;top:46px;align-self:flex-start;
+      max-height:calc(100dvh - 56px);justify-content:flex-start}
     .panel{position:relative;top:auto;right:auto;left:auto;transform:none;width:100%;flex:0 0 auto;height:auto;z-index:1;
       max-height:calc(100dvh - 70px);margin-top:0;border:1px solid var(--glass-bd);border-radius:20px;
       box-shadow:var(--shadow);overflow:hidden;background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
@@ -1102,17 +1101,9 @@ function render(){
   window.scrollTo(0,sy);
   const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
   set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
-  requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);syncPanelRail();});
+  requestAnimationFrame(()=>{window.scrollTo(0,sy);set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);});
 }
-// Десктоп: горе количката е подравнена, при скрол надолу — вертикално центрирана в екрана.
 function isSidePanelLayout(){return window.matchMedia("(min-width:768px) and (orientation:landscape)").matches;}
-function syncPanelRail(){
-  const rail=document.querySelector(".panel-rail");
-  if(!rail||!isSidePanelLayout()){rail&&rail.classList.remove("centered");return;}
-  const stuck=rail.getBoundingClientRect().top<=48;
-  const scrolled=window.scrollY>Math.max(0,rail.offsetTop-60);
-  rail.classList.toggle("centered",stuck&&scrolled);
-}
 
 function trackBanner(){
   const active=state.orders.find(o=>o.status<4);
@@ -1376,14 +1367,23 @@ function draftRemoveOption(gi,oi){state.adminDraft.modifiers[gi].options.splice(
 function draftSetType(gi,val){const g=state.adminDraft.modifiers[gi];if(val==="single"){g.required=true;g.min=1;g.max=1;}else{g.required=false;g.min=0;g.max=5;}render();keepEditor();}
 function keepEditor(){document.getElementById("ascrim")?.classList.add("show");document.getElementById("amodal")?.classList.add("show");}
 // Смалява снимката в браузъра до разумен размер преди качване (бързо + приятно).
-function fileToResizedDataUrl(file,maxDim=800,quality=.82){
+// PNG/WebP без фон: JPEG ги прави с черен фон — за напитки пазим PNG или слагаме бял фон.
+function fileToResizedDataUrl(file,maxDim=800,quality=.82,{packShot=false}={}){
   return new Promise((resolve,reject)=>{
     const img=new Image();const url=URL.createObjectURL(file);
     img.onload=()=>{URL.revokeObjectURL(url);let w=img.width,h=img.height;
       if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
       else if(h>=w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
       const c=document.createElement("canvas");c.width=w;c.height=h;
-      c.getContext("2d").drawImage(img,0,0,w,h);
+      const ctx=c.getContext("2d");
+      const alphaSrc=/image\/(png|webp)/i.test(file.type);
+      if(packShot&&alphaSrc){
+        ctx.drawImage(img,0,0,w,h);
+        resolve(c.toDataURL("image/png"));
+        return;
+      }
+      if(alphaSrc||packShot){ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);}
+      ctx.drawImage(img,0,0,w,h);
       resolve(c.toDataURL("image/jpeg",quality));};
     img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("невалидна снимка"));};
     img.src=url;});
@@ -1391,7 +1391,8 @@ function fileToResizedDataUrl(file,maxDim=800,quality=.82){
 async function uploadProductImage(productId,file){
   try{
     if(!/^image\//.test(file.type)) throw new Error("Файлът не е снимка");
-    const dataUrl=await fileToResizedDataUrl(file);
+    const packShot=PACK_SHOT_GROUPS.has(state.adminDraft?.groupID);
+    const dataUrl=await fileToResizedDataUrl(file,800,.82,{packShot});
     const r=await fetch("/api/product-image",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({productId,dataUrl})});
     const j=await r.json().catch(()=>({}));
@@ -1590,8 +1591,6 @@ function bindAdmin(){
 function updatePlace(){const o=state.order;const ready=o.name.trim()&&o.phone.trim().length>=6;
   const btn=document.getElementById("placeBtn");if(btn){btn.disabled=!ready;btn.textContent=ready?'Изпрати поръчката':'Попълни име и телефон';}}
 
-window.addEventListener("scroll",syncPanelRail,{passive:true});
-window.addEventListener("resize",syncPanelRail,{passive:true});
 boot();
 </script>
 </body>
