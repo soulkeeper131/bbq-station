@@ -88,7 +88,9 @@
   .tab.active{background:var(--ink);color:var(--cream);border-color:var(--ink);box-shadow:0 9px 20px -10px rgba(44,33,26,.75)}
   .tab.active:hover{color:var(--cream)}
 
-  .menu{padding:8px 18px 120px}
+  .menu{padding:8px 18px 12px}
+  /* Място за плаващата кошница — само когато има артикули. */
+  body.has-floatcart .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
   [id^="grp-"]{scroll-margin-top:110px}
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
@@ -290,8 +292,8 @@
   .cart-line .rm{margin-left:auto;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;
     text-decoration:underline;font-family:inherit;white-space:nowrap;flex:0 0 auto}
   .amodal-scroll{overflow-x:hidden}
-  .site-footer{text-align:center;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));
-    font-size:11.5px;color:var(--muted);letter-spacing:.02em;line-height:1.5}
+  .site-footer{text-align:center;padding:14px 18px 12px;font-size:11.5px;color:var(--muted);
+    letter-spacing:.02em;line-height:1.5;border-top:1px solid var(--line);margin-top:6px}
   .site-footer a{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(210,90,42,.35)}
   .site-footer a:hover{color:var(--ember);border-bottom-color:var(--ember)}
   .empty{text-align:center;padding:70px 20px;color:var(--muted);font-size:14px;line-height:1.45}
@@ -552,12 +554,13 @@
     .floatcart{display:none}
     .layout{display:grid;grid-template-columns:minmax(0,1fr) min(300px,34vw);gap:var(--col-gap);align-items:start;
       width:100%;max-width:100%;box-sizing:border-box;
-      padding:var(--col-gap) max(var(--gutter),env(safe-area-inset-right)) 0 max(var(--gutter),env(safe-area-inset-left))}
+      padding:var(--col-gap) max(var(--gutter),env(safe-area-inset-right)) var(--col-gap) max(var(--gutter),env(safe-area-inset-left))}
     .main{min-width:0;background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-      border:1px solid var(--glass-bd);border-radius:20px;padding:2px 16px 14px;box-shadow:var(--shadow)}
+      border:1px solid var(--glass-bd);border-radius:20px;padding:2px 16px 0;box-shadow:var(--shadow);padding-bottom:0}
     .tabs{padding:14px 0 6px;position:sticky;top:46px;z-index:20;background:rgba(247,239,227,.6);
       -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);margin:0 -16px;padding-left:16px;padding-right:16px;border-radius:20px 20px 0 0}
-    .menu{padding:8px 0 24px}
+    .menu{padding:8px 0 8px}
+    .main .site-footer{padding:12px 0 14px;border-top:1px solid var(--line)}
     .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
     .card{gap:14px;padding:16px 0}
     .card .thumb{width:118px;height:118px;border-radius:18px}
@@ -617,7 +620,7 @@
     .grid-admin{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
     .trackbar{margin:0 0 4px}
     .venue-map{height:200px}
-    .site-footer{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+    .app{min-height:0}
   }
   /* По-широк ландшафт — две колони меню, по-големи снимки. */
   @media(min-width:960px) and (orientation:landscape){
@@ -625,7 +628,8 @@
     header{padding:18px max(var(--gutter),env(safe-area-inset-right)) 18px max(var(--gutter),env(safe-area-inset-left))}
     .brand h1{font-size:30px}
     .layout{grid-template-columns:minmax(0,1fr) min(340px,30vw)}
-    .main{padding:2px 20px 16px;border-radius:22px}
+    .main{padding:2px 20px 0;border-radius:22px}
+    .main .site-footer{padding:14px 0 16px}
     .tabs{padding:16px 0 6px;margin:0 -20px;padding-left:20px;padding-right:20px;border-radius:22px 22px 0 0}
     .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
     .card{gap:16px;padding:18px 0}
@@ -1189,10 +1193,11 @@ function render(){
   if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
   else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+`<div class="app">`+header()+
-    `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
-    floatCart()+sheet()+`</div>`+foot;bindCommon();bindClient();}
+    `<div class="layout"><div class="main">`+trackBanner()+tabs()+menu()+foot+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
+    floatCart()+sheet()+`</div>`;bindCommon();bindClient();}
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
   document.body.classList.toggle("checkout-full",state.mode!=="admin"&&state.view==="checkout"&&useCheckoutFullscreen());
+  document.body.classList.toggle("has-floatcart",state.mode==="client"&&cartCount()>0&&!isSidePanelLayout());
   window.scrollTo(0,sy);
   const set=(s,v)=>{const e=document.querySelector(s);if(e)e.scrollTop=v;};
   set(".panel-scroll",psT);set(".sheet-scroll",ssT);set(".amodal-scroll",asT);
