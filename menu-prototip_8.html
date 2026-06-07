@@ -130,6 +130,9 @@
   .card .thumb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:50px;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.14))}
   .card .thumb .thumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  /* Напитки: снимки без фон (бутилка/кен) — светъл фон + contain, не cover върху градиента. */
+  .card .thumb.pack-shot{background:#fff;box-shadow:var(--shadow-card)}
+  .card .thumb.pack-shot .thumb-img{object-fit:contain;padding:10px;box-sizing:border-box}
   .add-fab{width:36px;height:36px;border-radius:50%;background:var(--ember-tint);border:1px solid rgba(210,90,42,.35);
     display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;color:var(--ember);font-weight:700;
     box-shadow:0 8px 16px -9px rgba(210,90,42,.6);flex:0 0 auto;align-self:center;transition:.15s}
@@ -173,8 +176,11 @@
   .sheet-hero .emoji{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:70px;opacity:.92;
     filter:drop-shadow(0 6px 10px rgba(0,0,0,.2))}
   .sheet-hero.has-img{height:172px;background-size:cover;background-position:center}
-  .sheet-hero.has-img::before{content:"";position:absolute;inset:0;
+  .sheet-hero.has-img.pack-shot{background-color:#fff;background-size:contain;background-repeat:no-repeat}
+  .sheet-hero.has-img.pack-shot::before{background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.45))}
+  .sheet-hero.has-img:not(.pack-shot)::before{content:"";position:absolute;inset:0;
     background:linear-gradient(180deg,rgba(0,0,0,.05) 30%,rgba(0,0,0,.6))}
+  .sheet-hero.has-img.pack-shot::before{content:"";position:absolute;inset:0}
   .sheet-hero h2{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:600;color:#fff;z-index:2;max-width:70%;
     text-shadow:0 2px 10px rgba(0,0,0,.25)}
   .sheet-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:none;
@@ -433,6 +439,9 @@
   .arow .ico{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));
     border:1px solid var(--glass-bd);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;overflow:hidden}
   .arow .ico .ico-img{width:100%;height:100%;object-fit:cover;display:block}
+  .arow .ico.pack-shot{background:#fff}
+  .arow .ico.pack-shot .ico-img{object-fit:contain;padding:4px;box-sizing:border-box}
+  .img-prev.pack-shot{background-color:#fff;background-size:contain;background-repeat:no-repeat}
   .img-edit{display:flex;gap:14px;align-items:center;padding:2px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .img-prev{width:84px;height:84px;border-radius:14px;flex:0 0 auto;overflow:hidden;font-size:34px;
     background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(210,154,78,.35));border:1px solid var(--glass-bd);
@@ -1136,6 +1145,10 @@ function header(){return `<header><div class="brand">
     <button class="cart-btn" id="openCart"><span>Кошница</span>${cartCount()?`<span class="count js-cart-count">${cartCount()}</span>`:""}</button>
   </div></header>`;}
 function imgFor(it){return (it&&state.productImages[it.id])||null;}
+// Напитки — продуктови снимки без фон; останалите ястия — cover върху градиента.
+const PACK_SHOT_GROUPS=new Set([3]);
+function isPackShot(it){return it&&PACK_SHOT_GROUPS.has(it.groupID);}
+function thumbClass(it){const c=["thumb"];if(imgFor(it)&&isPackShot(it))c.push("pack-shot");return c.join(" ");}
 // Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
 function thumbInner(it){const u=imgFor(it);
   return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy">`:`<span>${it.emoji||"🍽️"}</span>`;}
@@ -1161,8 +1174,7 @@ function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;
     items.forEach(it=>{const hasOpt=it.garnishable||(it.modifiers||[]).length>0;const sold=it.available===false;
-      const hasImg=!!imgFor(it);
-      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="thumb ${hasImg?'has-img':''}">${thumbInner(it)}</div>
+      out+=`<div class="card ${sold?'sold':''}" data-item="${it.id}" data-sold="${sold}"><div class="${thumbClass(it)}">${thumbInner(it)}</div>
         <div class="card-body"><div class="name">${it.name}</div>${it.description?`<div class="desc">${it.description}</div>`:""}
         <div class="meta"><span class="price">${moneyHTML(it.basicPrice)}</span>${sold?`<span class="badge-sold">изчерпано</span>`:(it.garnishable?`<span class="badge-opt">+ гарнитури · хляб</span>`:(hasOpt?`<span class="badge-opt">с избор</span>`:""))}</div></div>
         ${sold?"":`<div class="add-fab">+</div>`}</div>`;});
@@ -1199,7 +1211,7 @@ function sheet(){const it=state.modalItem;if(!it)return `<div class="scrim" id="
   }
   const valid=modalValid();const heroImg=imgFor(it);
   return `<div class="scrim show" id="scrim"></div><div class="sheet${state.modalShown?' show':''}" id="sheet">
-    <div class="sheet-hero ${heroImg?'has-img':''}"${heroImg?` style="background-image:url('${heroImg}')"`:''}>${heroImg?'':`<span class="emoji">${it.emoji||"🍽️"}</span>`}<h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
+    <div class="sheet-hero ${heroImg?'has-img':''}${heroImg&&isPackShot(it)?' pack-shot':''}"${heroImg?` style="background-image:url('${heroImg}')"`:''}>${heroImg?'':`<span class="emoji">${it.emoji||"🍽️"}</span>`}<h2>${it.name}</h2><button class="sheet-close" id="closeSheet">✕</button></div>
     <div class="sheet-scroll">${body}</div>
     <div class="sheet-foot"><button class="btn-primary split" id="addCart" ${valid?'':'disabled'}>
       <span>${valid?'Добави в кошницата':'Избери задължителните опции'}</span><span>${money(modalTotal())}</span></button></div></div>`;}
@@ -1283,7 +1295,8 @@ function adminView(){
 function adminProductRow(it){
   const has=(it.modifiers||[]).length>0;const on=it.available!==false;const custom=isCustomItem(it.id);
   const img=imgFor(it);
-  return `<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="ico ${img?'has-img':''}">${img?`<img class="ico-img" src="${img}" alt="">`:(it.emoji||"🍽️")}</div>
+  const icoCls="ico"+(img&&isPackShot(it)?" pack-shot":"");
+  return `<div class="arow ${on?'':'sold'}" data-edit="${it.id}"><div class="${icoCls}">${img?`<img class="ico-img" src="${img}" alt="">`:(it.emoji||"🍽️")}</div>
     <div class="arow-body"><div class="arow-nm">${it.name}${custom?` <span class="tag has">ръчен</span>`:""}</div>
       <div class="arow-sub">${money(it.basicPrice)}${it.description?" · "+it.description:""} · ${has?(it.modifiers.length+' групи опции'):'без комбинации'}${it.garnishable?" · + гарнитури":""}</div></div>
     <div class="switch ${on?'on':''}" data-toggle="${it.id}"><span class="sw-lbl">${on?'Наличен':'Изчерпан'}</span>
@@ -1474,7 +1487,7 @@ function adminModal(){
       <div class="amodal-scroll">
         ${editorFieldsHTML(d)}
         <div class="img-edit">
-          <div class="img-prev ${imgD?'has':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
+          <div class="img-prev ${imgD?'has':''}${imgD&&PACK_SHOT_GROUPS.has(d.groupID)?' pack-shot':''}"${imgD?` style="background-image:url('${imgD}')"`:''}>${imgD?'':`<span>${d.emoji||'🍽️'}</span>`}</div>
           <div class="img-actions"><div class="img-h">Снимка на продукта</div>
             <div class="img-row"><label class="btn-ghost compact" for="imgUp">${imgD?'Смени снимка':'Качи снимка'}</label>
               ${imgD?`<button class="link-btn danger" id="imgRm">Премахни</button>`:''}</div>
