@@ -73,7 +73,7 @@
 
   .layout{display:block}
   /* Лепкави категории — само табовете; проследяването скролва отделно. */
-  .menu-sticky{position:sticky;top:0;z-index:30;background:#f7efe3;
+  .menu-sticky{position:-webkit-sticky;position:sticky;top:0;z-index:30;background:#f7efe3;
     padding-top:env(safe-area-inset-top,0px);border-bottom:1px solid var(--line)}
   body.has-demobar .menu-sticky{top:calc(43px + env(safe-area-inset-top,0px));padding-top:0}
   .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 18px 8px;scrollbar-width:none;
@@ -94,9 +94,13 @@
   body.has-floatcart .main{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
   [id^="grp-"]{scroll-margin-top:64px}
   body.has-demobar [id^="grp-"]{scroll-margin-top:108px}
-  /* iOS Safari: height:100% на body чупи sticky — на мобилно скролът е на документа. */
+  /* Мобилно: overflow на html/body чупи sticky (visible+auto → auto). Клип само в .app. */
   @media(max-width:767px),(min-width:768px) and (orientation:portrait){
-    html,body{height:auto;min-height:100%;overflow-y:auto}
+    html,body{height:auto;min-height:100%;overflow:visible}
+    .app{overflow-x:clip}
+    .menu-sticky-mobile{max-width:520px;width:100%;margin-left:auto;margin-right:auto}
+    .app-head{padding-bottom:0}
+    .app-body{min-height:0;margin-top:0}
   }
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
@@ -1216,6 +1220,23 @@ function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0
   simTimer=setTimeout(next,1700);}
 function stopSim(){state.autoSim=false;clearTimeout(simTimer);}
 
+function clientShell(){
+  const foot=appFooter();
+  const rail=`<div class="panel-rail">`+cartPanel()+`</div>`;
+  const overlays=floatCart()+sheet();
+  if(isSidePanelLayout()){
+    return `<div class="app">`+header()+
+      `<div class="layout"><div class="main">`+trackBanner()+`<div class="menu-sticky">`+tabs()+`</div>`+menu()+foot+
+      `</div>`+rail+`</div>`+overlays+`</div>`;
+  }
+  /* Категориите извън .app — иначе overflow-x:clip чупи sticky на iOS/Android. */
+  return `<div class="app app-head">`+header()+trackBanner()+`</div>`+
+    `<div class="menu-sticky menu-sticky-mobile">`+tabs()+`</div>`+
+    `<div class="app app-body">`+
+    `<div class="layout"><div class="main">`+menu()+foot+`</div>`+rail+`</div>`+
+    overlays+`</div>`;
+}
+
 function render(){
   const sy=window.scrollY;
   const grab=s=>{const e=document.querySelector(s);return e?e.scrollTop:0;};
@@ -1223,9 +1244,7 @@ function render(){
   const foot=appFooter();
   if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
   else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;bindCommon();bindConfirm();}
-  else{root.innerHTML=demobar()+`<div class="app">`+header()+
-    `<div class="layout"><div class="main">`+trackBanner()+`<div class="menu-sticky">`+tabs()+`</div>`+menu()+foot+`</div><div class="panel-rail">`+cartPanel()+`</div></div>`+
-    floatCart()+sheet()+`</div>`;bindCommon();bindClient();}
+  else{root.innerHTML=demobar()+clientShell();bindCommon();bindClient();}
   document.body.classList.toggle("has-demobar",state.mode!=="admin"&&!!state.runtime.demoMode);
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
   document.body.classList.toggle("checkout-full",state.mode!=="admin"&&state.view==="checkout"&&useCheckoutFullscreen());
