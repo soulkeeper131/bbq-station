@@ -101,6 +101,10 @@
     .menu-sticky-mobile{max-width:520px;width:100%;margin-left:auto;margin-right:auto}
     .app-head{padding-bottom:0}
     .app-body{min-height:0;margin-top:0}
+    /* backdrop-filter върху скролващо съдържание = премигване на img в Safari. */
+    header{-webkit-backdrop-filter:none;backdrop-filter:none;
+      background:linear-gradient(180deg,rgba(255,250,242,.98),rgba(247,239,227,.96))}
+    .card .thumb .thumb-img{-webkit-backface-visibility:hidden;backface-visibility:hidden}
   }
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
@@ -224,6 +228,10 @@
   /* Тъч устройства: по-големи +/− зони (Safari не zoom-ва при бързо натискане). */
   @media(hover:none) and (pointer:coarse){
     .qty button,.qty.sm button,.cart-line .q button{min-width:44px;min-height:44px}
+    /* Hover transform при скрол на iOS премигва снимките. */
+    .card .thumb{transition:none}
+    .card:hover .thumb,.card:active .thumb{transform:none}
+    .card:hover .add-fab,.card:active .add-fab{transform:none}
   }
   .opt{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--glass-bd);border-radius:14px;
     margin-bottom:9px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.4)}
@@ -1331,7 +1339,7 @@ function drawResizedImage(img,w,h,{whiteBg=false}={}){
 function thumbClass(it){const c=["thumb"];if(imgFor(it)&&isPackShot(it))c.push("pack-shot");return c.join(" ");}
 // Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
 function thumbInner(it){const u=imgFor(it);
-  return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="lazy">`:`<span>${it.emoji||"🍽️"}</span>`;}
+  return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="eager" decoding="async" fetchpriority="low">`:`<span>${it.emoji||"🍽️"}</span>`;}
 function scrollToGroup(gid){
   const el=document.getElementById("grp-"+gid);if(!el)return;
   const sticky=document.querySelector(".menu-sticky");
