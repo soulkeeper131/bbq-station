@@ -97,14 +97,22 @@
   /* Мобилно: overflow на html/body чупи sticky (visible+auto → auto). Клип само в .app. */
   @media(max-width:767px),(min-width:768px) and (orientation:portrait){
     html,body{height:auto;min-height:100%;overflow:visible}
-    .app{overflow-x:clip}
+    .app{overflow-x:clip;min-height:0}
     .menu-sticky-mobile{max-width:520px;width:100%;margin-left:auto;margin-right:auto}
-    .app-head{padding-bottom:0}
+    .app-head{padding-bottom:0;min-height:0}
     .app-body{min-height:0;margin-top:0}
-    /* backdrop-filter върху скролващо съдържание = премигване на img в Safari. */
+    .app-head header{padding:14px 16px 10px;border-bottom:none}
+    .app-head .trackbar{margin:0;padding:11px 16px;border-radius:0;border:none;border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.45)}
+    .app-head .trackbar.active{background:rgba(210,90,42,.1);border-bottom-color:rgba(210,90,42,.28)}
+    /* backdrop-filter / fixed gradient = премигване на img в Safari при скрол. */
     header{-webkit-backdrop-filter:none;backdrop-filter:none;
       background:linear-gradient(180deg,rgba(255,250,242,.98),rgba(247,239,227,.96))}
-    .card .thumb .thumb-img{-webkit-backface-visibility:hidden;backface-visibility:hidden}
+    body::before{position:absolute;inset:0;min-height:100%;height:auto}
+    .card .thumb{background:#f0e6d8;transition:none;box-shadow:inset 0 0 0 1px var(--glass-bd)}
+    .card .thumb.pack-shot{background:#fff}
+    .card .thumb .thumb-img{width:100%;height:100%;-webkit-backface-visibility:hidden;backface-visibility:hidden;
+      -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}
   }
   .group-title{font-family:'Unbounded',sans-serif;font-size:21px;font-weight:600;margin:22px 0 4px;color:var(--ink);
     display:flex;align-items:baseline;gap:10px}
@@ -1339,7 +1347,7 @@ function drawResizedImage(img,w,h,{whiteBg=false}={}){
 function thumbClass(it){const c=["thumb"];if(imgFor(it)&&isPackShot(it))c.push("pack-shot");return c.join(" ");}
 // Снимка с „topло" fallback към емоджи, ако още няма качена реална снимка.
 function thumbInner(it){const u=imgFor(it);
-  return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" loading="eager" decoding="async" fetchpriority="low">`:`<span>${it.emoji||"🍽️"}</span>`;}
+  return u?`<img class="thumb-img" src="${u}" alt="${(it.name||'').replace(/"/g,'&quot;')}" width="118" height="118" loading="eager" decoding="sync">`:`<span>${it.emoji||"🍽️"}</span>`;}
 function scrollToGroup(gid){
   const el=document.getElementById("grp-"+gid);if(!el)return;
   const sticky=document.querySelector(".menu-sticky");
