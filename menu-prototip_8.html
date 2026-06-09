@@ -7,7 +7,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>BBQ Station — Поръчка за вземане</title>
-<!-- v=20260609-2024 -->
+<!-- v=20260609-2324 -->
+<script>
+(function(){var v='202606092324';if(sessionStorage.getItem('_bv')!==v){sessionStorage.setItem('_bv',v);if(location.search.indexOf('v=')===-1)location.replace(location.pathname+'?v='+v+location.hash);}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800;900&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1141,7 +1144,7 @@ async function placeOrder(){
   glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
     lines:rec.lines.map(lineLabel),total:rec.total});
   state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
-  history.replaceState(null,"","/?track="+res.docID);
+  history.replaceState(null,"",keepVParam("track",res.docID));
   const inf=statusInfo(1);
   if(inf){const e={channel:inf.channel,toast:inf.toast,text:messageFor(rec,1),docID:res.docID,time:nowHM()};
     rec.notifs.push(e);toast(e);glog("notify:viber:server",{docID:res.docID,reason:"първо известие от сървъра"});}
@@ -1236,7 +1239,7 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
   }
   saveOrderToServer(o);
   persist();if(state.view==="confirm")refreshConfirm();}
-function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"","/?track="+docID);render();}
+function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"",keepVParam("track",docID));render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
 function runAutoSim(docID){state.autoSim=true;refreshConfirm();const steps=[2,3];let i=0;
   const next=()=>{if(!state.autoSim||state.activeOrderId!==docID)return;
@@ -1244,6 +1247,7 @@ function runAutoSim(docID){state.autoSim=true;refreshConfirm();const steps=[2,3]
     setStatus(docID,steps[i]);i++;simTimer=setTimeout(next,2000);};
   simTimer=setTimeout(next,1700);}
 function stopSim(){state.autoSim=false;clearTimeout(simTimer);}
+function keepVParam(k,v){const sp=new URLSearchParams(location.search);sp.set(k,v);return"/?"+sp.toString();}
 
 function clientShell(){
   const foot=appFooter();
