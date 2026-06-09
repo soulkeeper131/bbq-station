@@ -1010,7 +1010,7 @@ async function boot(){
   }
   glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
   let layoutT;
-  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{syncRotateLock();if(state.mode!=="admin")render();},100);};
+  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{syncRotateLock();if(state.mode!=="admin"&&!document.activeElement?.matches("input,textarea,select"))render();},100);};
   window.addEventListener("resize",onLayoutChange);
   window.addEventListener("orientationchange",onLayoutChange);
   syncRotateLock();
