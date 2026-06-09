@@ -1170,10 +1170,10 @@ function orderLinesText(o){return (o.lines||[]).map(l=>"• "+lineLabel(l)).join
 // Същият списък за HTML (екран на клиента и кухнята).
 function orderLinesHTML(o){
   return (o.lines||[]).map(l=>{
-    let h=`<b>${l.qty}× ${l.name}</b>`;
+    let h=`<b>${l.qty}× ${esc(l.name)}</b>`;
     if(l.garnishes&&l.garnishes.length)h+=lineGarnishRows(l);
     else if(l.summary&&l.summary.length)h+=` <span class="li-opt">${l.qty>1?"всяка с: ":""}${l.summary.join(", ")}</span>`;
-    if(l.note)h+=`<span class="li-note">📝 ${l.note}</span>`;
+    if(l.note)h+=`<span class="li-note">📝 ${esc(l.note)}</span>`;
     return `<div class="ol-line">${h}</div>`;
   }).join("");
 }
@@ -1455,8 +1455,8 @@ function cartPanel(){
       if(side)title="Кошница · "+cartCount();
       else{title="Кошница";closeBtn=`<button class="panel-close" id="panelClose" type="button" aria-label="Затвори">✕</button>`;}
       inner=`<div class="panel-scroll">${state.cart.map(l=>`<div class="cart-line" data-line="${l.lineId}">
-        <div class="top"><div class="nm">${l.emoji} ${l.name}</div><div class="lt">${moneyStackHTML(l.lineTotal)}</div></div>
-        ${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):`<div class="opts js-portion">${linePortionText(l)}</div>`}${l.note?`<div class="opts">📝 ${l.note}</div>`:""}
+        <div class="top"><div class="nm">${l.emoji} ${esc(l.name)}</div><div class="lt">${moneyStackHTML(l.lineTotal)}</div></div>
+        ${l.garnishes&&l.garnishes.length?lineBreakdownRows(l):`<div class="opts js-portion">${linePortionText(l)}</div>`}${l.note?`<div class="opts">📝 ${esc(l.note)}</div>`:""}
         <div class="ctrls">${l.garnishes&&l.garnishes.length?`<span class="qty-lock">за промяна — премахни и добави отново</span>`:
           `<div class="q"><button data-dec="${l.lineId}" aria-label="по-малко">−</button><b class="qn">${l.qty}</b><button data-inc="${l.lineId}" aria-label="повече">+</button></div>`}
           <button class="rm" data-rm="${l.lineId}">премахни</button></div></div>`).join("")}</div>
