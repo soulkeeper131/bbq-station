@@ -246,6 +246,13 @@ const server = createServer(async (req, res) => {
           log("[viber] welcome грешка:", String(e))
         );
       }
+      if (!isNew && o.status === 3 && o.phone) {
+        const track = cfg.publicUrl ? `${cfg.publicUrl}/?track=${id}` : `/?track=${id}`;
+        const text = `Поръчка #${id} е ГОТОВА за вземане ✅\nЗаповядай да я вземеш.\n🔗 Проследи статуса: ${track}`;
+        sendViberMessage(normalizePhoneServer(o.phone), text).catch((e) =>
+          log("[viber] готова грешка:", String(e))
+        );
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ok: true }));
     } catch (e) {
@@ -381,8 +388,9 @@ const server = createServer(async (req, res) => {
     });
   }
 
-  // Заявка за Viber → препраща към Infobip (ключът е само на сървъра).
+  // Viber proxy → само за админ (тестове). В продукция Viber се праща от сървъра.
   if (req.method === "POST" && req.url === "/api/send-viber") {
+    if (!requireAdmin(req, res)) return;
     if (!viberReady) {
       log("[viber] ОТКАЗ — Viber не е конфигуриран");
       res.writeHead(503, { "Content-Type": "application/json" });

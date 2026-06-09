@@ -1222,16 +1222,9 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
   const inf=statusInfo(s);
   glog("order:status",{docID,status:s,statusName:STATUS_NAME[s]||String(s),channel:inf?inf.channel:"—"});
   if(inf){
-    // text = точният текст, който се праща (показва се 1:1 в лога и на екрана).
+    // text = точният текст, който се показва в toast/лога (Viber се праща от сървъра).
     const e={channel:inf.channel,toast:inf.toast,text:messageFor(o,s),docID,time:nowHM()};
     o.notifs.push(e);toast(e);
-    if(o.phone&&s!==1){
-      const phone=normalizePhone(o.phone);
-      glog("notify:viber",{docID,to:phone,text:e.text});
-      sendViber(phone,e.text);
-    } else if(!o.phone){
-      glog("notify:viber:skip",{docID,reason:"няма телефон"});
-    }
   }
   saveOrderToServer(o);
   persist();render();}
