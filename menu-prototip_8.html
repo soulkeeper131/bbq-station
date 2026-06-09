@@ -1776,7 +1776,7 @@ function bindClient(){
   document.querySelectorAll(".time-opt").forEach(t=>t.onclick=()=>{state.order.time=t.dataset.time;render();});
   const pl=document.getElementById("placeBtn");if(pl)pl.onclick=placeOrder;
   document.querySelectorAll("[data-track]").forEach(b=>b.onclick=()=>trackOrder(+b.dataset.track));
-  const tt=document.getElementById("trackBtn");if(tt)tt.onclick=()=>{state.trackInput=!state.trackInput;if(!state.trackInput){state.trackErr=\"\";state.trackInputVal=\"\";}render();};
+  const tt=document.getElementById("trackBtn");if(tt)tt.onclick=()=>{state.trackInput=!state.trackInput;if(!state.trackInput){state.trackErr="";state.trackInputVal="";}render();};
   const tn=document.getElementById("trackNum");if(tn)tn.oninput=e=>{state.trackInputVal=e.target.value;};
   const tg=document.getElementById("trackGo");if(tg)tg.onclick=async()=>{const n=parseInt(state.trackInputVal,10);
     if(!n||n<1){state.trackErr="Въведи валиден номер на поръчка.";render();return;}
