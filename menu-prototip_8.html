@@ -934,7 +934,8 @@ function startTrackPolling(docID){
 function stopTrackPolling(){if(trackTimer){clearInterval(trackTimer);trackTimer=null;}}
 // Обновява confirm секцията без мигане (пази скрол позицията).
 function refreshConfirm(){const el=document.querySelector(".confirm");if(!el)return;
-  const sy=window.scrollY;el.outerHTML=confirmView();window.scrollTo(0,sy);bindConfirm();}
+  const sy=window.scrollY,html=confirmView();
+  el.innerHTML=html.slice(html.indexOf(">")+1,html.lastIndexOf("</div>"));window.scrollTo(0,sy);bindConfirm();}
 
 function normalizeMenuItem(it){
   const p=Number(it.basicPrice)||0;
@@ -1142,6 +1143,7 @@ async function placeOrder(){
   glog("order:created",{docID:res.docID,name:rec.name,phone:rec.phone,pickup:pickupText(rec),
     lines:rec.lines.map(lineLabel),total:rec.total});
   state.orders.unshift(rec);state.activeOrderId=res.docID;state.view="confirm";
+  history.replaceState(null,"","/?track="+res.docID);
   const inf=statusInfo(1);
   if(inf){const e={channel:inf.channel,toast:inf.toast,text:messageFor(rec,1),docID:res.docID,time:nowHM()};
     rec.notifs.push(e);toast(e);glog("notify:viber:server",{docID:res.docID,reason:"първо известие от сървъра"});}
@@ -1238,7 +1240,7 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
   persist();
   if(state.view==="confirm")refreshConfirm();
   else render();}
-function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";render();}
+function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"","/?track="+docID);render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
 function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0;
   const next=()=>{if(!state.autoSim||state.activeOrderId!==docID)return;
