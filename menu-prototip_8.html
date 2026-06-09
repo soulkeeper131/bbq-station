@@ -790,7 +790,7 @@ const YanakAPI = {
   async createOrder(payload){
     await new Promise(r=>setTimeout(r,650));
     console.log("→ ЯНАК POST /e-shop/api/order:",payload);
-    return {docID:crypto.randomUUID()};
+    return {docID:genTrackID()};
   },
 };
 
@@ -804,6 +804,10 @@ const state={
   runtime:{demoMode:true,adminRequired:false},
   menuOverrides:{customItems:[],patches:{},hidden:[]},
 };
+// Криптографски 5-символен tracking ID (букви + цифри). ~60 млн комбинации.
+function genTrackID(){const chars="abcdefghijklmnopqrstuvwxyz0123456789";const a=new Uint8Array(5);
+  crypto.getRandomValues(a);for(let i=0;i<5;i++)a[i]=chars.charCodeAt(a[i]%36);
+  return String.fromCharCode(...a);}
 // Валута: показваме едновременно евро и лева (фиксиран курс 1 € = 1,95583 лв).
 // Цените в данните са в ЛЕВА; еврото се изчислява от тях.
 const EUR_RATE=1.95583;
@@ -1296,7 +1300,7 @@ function trackBanner(){
     row=`<div class="tb-l"><span class="tb-dot s0"></span>
       <div class="tb-tx"><b>Проследи поръчка</b><span>Въведи номер за проверка на статуса</span></div></div>`;
   }
-  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. a1b2c3d4-..." value="${state.trackInputVal||''}">
+  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. k7m2x" value="${state.trackInputVal||''}">
     <button class="tb-go" id="trackGo">Провери</button></div>${state.trackErr?`<div class="tb-err">${state.trackErr}</div>`:''}`:'';
   return `<div class="trackbar ${active?'active':''}">${row}${inp}</div>`;
 }
