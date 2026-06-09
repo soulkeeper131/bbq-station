@@ -1275,12 +1275,17 @@ function refreshConfirm(){
     const last=o.notifs&&o.notifs.length?o.notifs[o.notifs.length-1]:null;
     const av=vb.querySelector(".av"),tx=vb.querySelector(".tx");
     if(av){av.className="av"+(last&&last.channel==="sms"?" sms":"");av.textContent=last&&last.channel==="sms"?"✉":"V";}
-    if(tx)tx.innerHTML="<b>"+(last?((last.channel==="sms"?"SMS":"Viber")+" до "+(o.phone||"клиента")):"Известие")+"</b>"+(last?(last.toast||last.text):"Ще получиш Viber/SMS при промяна на статуса.");
+    if(tx){const b=tx.querySelector("b");if(b)b.textContent=last?((last.channel==="sms"?"SMS":"Viber")+" до "+(o.phone||"клиента")):"Известие";
+      const tn=tx.childNodes[tx.childNodes.length-1];if(tn&&tn.nodeType===3)tn.textContent=last?(last.toast||last.text):"Ще получиш Viber/SMS при промяна на статуса.";}
   }
   const nl=el.querySelector(".nlog");
   if(o.notifs&&o.notifs.length){
-    const lh=o.notifs.map(n=>'<div class="nlog-item"><span class="ch '+n.channel+'">'+(n.channel==="viber"?"Viber":"SMS")+'</span><span class="nt">'+(n.toast||n.text)+'</span><span class="tm">'+n.time+'</span></div>').join("");
-    if(nl)nl.innerHTML='<div class="nlog-h">ИЗПРАТЕНИ ИЗВЕСТИЯ</div>'+lh;
+    const rendered=nl?nl.querySelectorAll(".nlog-item").length:0;
+    for(let i=rendered;i<o.notifs.length;i++){
+      const n=o.notifs[i],div=document.createElement("div");div.className="nlog-item";
+      div.innerHTML='<span class="ch '+n.channel+'">'+(n.channel==="viber"?"Viber":"SMS")+'</span><span class="nt">'+(n.toast||n.text)+'</span><span class="tm">'+n.time+'</span>';
+      if(nl)nl.appendChild(div);
+    }
   }
   const ab=el.querySelector("#autoSim"),sb=el.querySelector("#sim");
   if(!done&&state.runtime.demoMode){
