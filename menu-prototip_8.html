@@ -926,17 +926,11 @@ function startTrackPolling(docID){
     if(o&&(o.status!==fresh.status||(o.notifs||[]).length!==(fresh.notifs||[]).length)){
       o.status=fresh.status;o.notifs=fresh.notifs||o.notifs;o.lines=fresh.lines||o.lines;
       o.total=fresh.total??o.total;o.time=fresh.time??o.time;
-      glog("track:update",{docID,status:fresh.status});
-      refreshConfirm();
+      glog("track:update",{docID,status:fresh.status});render();
     }
   },5000);
 }
 function stopTrackPolling(){if(trackTimer){clearInterval(trackTimer);trackTimer=null;}}
-// Обновява confirm секцията без мигане (пази скрол позицията).
-function refreshConfirm(){const el=document.querySelector(".confirm");if(!el)return;
-  const sy=window.scrollY,html=confirmView();
-  el.innerHTML=html.slice(html.indexOf(">")+1,html.lastIndexOf("</div>"));window.scrollTo(0,sy);bindConfirm();}
-
 function normalizeMenuItem(it){
   const p=Number(it.basicPrice)||0;
   return {...it,basicPrice:p,price:Number(it.price??p)||p,
@@ -1237,9 +1231,7 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
     o.notifs.push(e);toast(e);
   }
   saveOrderToServer(o);
-  persist();
-  if(state.view==="confirm")refreshConfirm();
-  else render();}
+  persist();render();}
 function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"","/?track="+docID);render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
 function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0;
