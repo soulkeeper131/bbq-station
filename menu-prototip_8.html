@@ -1231,12 +1231,12 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
     o.notifs.push(e);toast(e);
   }
   saveOrderToServer(o);
-  persist();render();}
+  persist();if(state.view==="confirm")refreshConfirm();}
 function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"","/?track="+docID);render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
-function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0;
+function runAutoSim(docID){state.autoSim=true;refreshConfirm();const steps=[2,3];let i=0;
   const next=()=>{if(!state.autoSim||state.activeOrderId!==docID)return;
-    if(i>=steps.length){state.autoSim=false;render();return;}
+    if(i>=steps.length){state.autoSim=false;refreshConfirm();return;}
     setStatus(docID,steps[i]);i++;simTimer=setTimeout(next,2000);};
   simTimer=setTimeout(next,1700);}
 function stopSim(){state.autoSim=false;clearTimeout(simTimer);}
