@@ -449,7 +449,7 @@ const server = createServer(async (req, res) => {
       res.writeHead(404);
       return res.end(`${MENU_FILE} не е намерен в тази папка.`);
     }
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
     res.end(buf);
   });
 });
