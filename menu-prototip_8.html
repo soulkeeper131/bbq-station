@@ -1258,6 +1258,36 @@ function clientShell(){
     overlays+`</div>`;
 }
 
+function refreshConfirm(){
+  const el=document.querySelector(".confirm");if(!el)return;
+  const o=state.orders.find(x=>x.docID===state.activeOrderId)||{docID:"—",name:"",total:0,status:1,lines:[],notifs:[]};
+  const done=o.status>=3;
+  const c=el.querySelector(".check-circle");if(c)c.textContent=done?"🎉":"✓";
+  const h=el.querySelector("h2");if(h)h.textContent=done?"Поръчката е готова!":"Благодарим!";
+  const st=el.querySelector(".stepper");
+  if(st){
+    const steps=st.querySelectorAll(".step");
+    steps.forEach((s,i)=>{const idx=i+1,cls=idx<o.status?"done":idx===o.status?"active":"pending";
+      s.className="step "+cls;const d=s.querySelector(".dot");if(d)d.textContent=idx<o.status?"✓":String(idx);});
+  }
+  const vb=el.querySelector(".vibebox");
+  if(vb){
+    const last=o.notifs&&o.notifs.length?o.notifs[o.notifs.length-1]:null;
+    const av=vb.querySelector(".av"),tx=vb.querySelector(".tx");
+    if(av){av.className="av"+(last&&last.channel==="sms"?" sms":"");av.textContent=last&&last.channel==="sms"?"✉":"V";}
+    if(tx)tx.innerHTML="<b>"+(last?((last.channel==="sms"?"SMS":"Viber")+" до "+(o.phone||"клиента")):"Известие")+"</b>"+(last?(last.toast||last.text):"Ще получиш Viber/SMS при промяна на статуса.");
+  }
+  const nl=el.querySelector(".nlog");
+  if(o.notifs&&o.notifs.length){
+    const lh=o.notifs.map(n=>'<div class="nlog-item"><span class="ch '+n.channel+'">'+(n.channel==="viber"?"Viber":"SMS")+'</span><span class="nt">'+(n.toast||n.text)+'</span><span class="tm">'+n.time+'</span></div>').join("");
+    if(nl)nl.innerHTML='<div class="nlog-h">ИЗПРАТЕНИ ИЗВЕСТИЯ</div>'+lh;
+  }
+  const ab=el.querySelector("#autoSim"),sb=el.querySelector("#sim");
+  if(!done&&state.runtime.demoMode){
+    if(ab){ab.disabled=state.autoSim;const sp=ab.querySelector("span");if(sp)sp.textContent=state.autoSim?"⏳ Симулира се…":"▶ Пусни демо на целия път";}
+    if(sb)sb.disabled=state.autoSim;
+  }
+}
 function render(){
   const sy=window.scrollY;
   const grab=s=>{const e=document.querySelector(s);return e?e.scrollTop:0;};
@@ -1266,11 +1296,8 @@ function render(){
   if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
   else if(state.view==="confirm"){
     const ec=document.querySelector(".confirm");
-    if(ec){
-      const ifr=ec.querySelector("iframe.venue-map"),src=ifr?ifr.src:null;
-      const h=confirmView();ec.innerHTML=h.replace(/^<div class="confirm">/,"").replace(/<\/div>$/,"");
-      if(src){const ni=ec.querySelector("iframe.venue-map");if(ni&&ni.src!==src)ni.src=src;}
-    }else{root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;}
+    if(ec){refreshConfirm();}
+    else{root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;}
     bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+clientShell();bindCommon();bindClient();}
   document.body.classList.toggle("has-demobar",state.mode!=="admin"&&!!state.runtime.demoMode);
