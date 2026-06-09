@@ -926,7 +926,10 @@ function startTrackPolling(docID){
     if(o&&(o.status!==fresh.status||(o.notifs||[]).length!==(fresh.notifs||[]).length)){
       o.status=fresh.status;o.notifs=fresh.notifs||o.notifs;o.lines=fresh.lines||o.lines;
       o.total=fresh.total??o.total;o.time=fresh.time??o.time;
-      glog("track:update",{docID,status:fresh.status});render();
+      glog("track:update",{docID,status:fresh.status});
+      // Обновяваме само confirm секцията, без цялостен render
+      const el=document.querySelector(".confirm");
+      if(el){el.outerHTML=confirmView();bindConfirm();}
     }
   },5000);
 }
@@ -1487,12 +1490,12 @@ function confirmView(){
     <div class="ordno">Номер на поръчка: <b>#${o.docID}</b></div>
     <div class="ordno">за ${esc(o.name||'клиент')}</div>
     ${orderBox}
-    ${venueCard()}
     <div class="vibebox"><div class="av ${last&&last.channel==='sms'?'sms':''}">${last&&last.channel==='sms'?'✉':'V'}</div>
       <div class="tx"><b>${last?((last.channel==='sms'?'SMS':'Viber')+' до '+(o.phone||'клиента')):'Известие'}</b>${last?(last.toast||last.text):'Ще получиш Viber/SMS при промяна на статуса.'}</div></div>
     <div class="stepper">${stepsHtml}</div>
     ${o.notifs&&o.notifs.length?`<div class="nlog"><div class="nlog-h">Изпратени известия</div>${logHtml}</div>`:""}
     <div class="trackcode">Код за проследяване: <b>#${o.docID}</b><span>Запази го — линкът към статуса е и в твоето Viber/SMS известие, така че можеш да се върнеш по всяко време.</span></div>
+    ${venueCard()}
     ${!done&&state.runtime.demoMode?`<button class="btn-primary" id="autoSim" ${state.autoSim?'disabled':''} style="margin-top:18px">
         <span>${state.autoSim?'⏳ Симулира се…':'▶ Пусни демо на целия път'}</span></button>
       <button class="sim-btn" id="sim" ${state.autoSim?'disabled':''}>→ Само една стъпка напред</button>`:""}
