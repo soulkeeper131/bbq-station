@@ -1234,7 +1234,9 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
     o.notifs.push(e);toast(e);
   }
   saveOrderToServer(o);
-  persist();render();}
+  persist();
+  if(state.view==="confirm"){const el=document.querySelector(".confirm");if(el){el.outerHTML=confirmView();bindConfirm();}}
+  else render();}
 function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
 function runAutoSim(docID){state.autoSim=true;render();const steps=[2,3];let i=0;
