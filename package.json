@@ -19,6 +19,8 @@
   },
   "scripts": {
     "start": "node local-server.mjs",
+    "dev": "node --watch local-server.mjs",
+    "dev:debug": "node --inspect --watch local-server.mjs",
     "test:viber": "node test-viber.mjs",
     "check": "node --check local-server.mjs"
   },
