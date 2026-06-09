@@ -790,7 +790,7 @@ const YanakAPI = {
   async createOrder(payload){
     await new Promise(r=>setTimeout(r,650));
     console.log("→ ЯНАК POST /e-shop/api/order:",payload);
-    return {docID:Math.floor(10000+Math.random()*89999)};
+    return {docID:crypto.randomUUID()};
   },
 };
 
@@ -908,7 +908,7 @@ function mergeOrders(local,remote){
     const id=o.docID,prev=byId.get(id);
     if(!prev||(o.updatedAt||0)>=(prev.updatedAt||0))byId.set(id,o);
   });
-  return [...byId.values()].sort((a,b)=>(b.updatedAt||b.docID)-(a.updatedAt||a.docID));
+  return [...byId.values()].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
 }
 // Докато клиентът гледа статуса (тракинг), периодично дърпаме промени от сървъра.
 let trackTimer=null;
@@ -988,7 +988,7 @@ async function boot(){
   if(serverOrders&&serverOrders.length){state.orders=mergeOrders(state.orders,serverOrders);persist();}
   state.activeGroup=state.groups[0].id;
   // Линк към статус: ?track=<docID> отваря екрана със статуса на поръчката.
-  const trackId=Number(new URLSearchParams(location.search).get("track"));
+  const trackId=new URLSearchParams(location.search).get("track");
   if(trackId){
     let local=state.orders.find(o=>o.docID===trackId);
     if(!local){
@@ -1303,7 +1303,7 @@ function trackBanner(){
     row=`<div class="tb-l"><span class="tb-dot s0"></span>
       <div class="tb-tx"><b>Проследи поръчка</b><span>Въведи номер за проверка на статуса</span></div></div>`;
   }
-  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. 12345" value="${state.trackInputVal||''}" inputmode="numeric">
+  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. a1b2c3d4-..." value="${state.trackInputVal||''}">
     <button class="tb-go" id="trackGo">Провери</button></div>${state.trackErr?`<div class="tb-err">${state.trackErr}</div>`:''}`:'';
   return `<div class="trackbar ${active?'active':''}">${row}${inp}</div>`;
 }
@@ -1775,11 +1775,11 @@ function bindClient(){
   const fp=document.getElementById("f-phone");if(fp)fp.oninput=e=>{state.order.phone=e.target.value;updatePlace();};
   document.querySelectorAll(".time-opt").forEach(t=>t.onclick=()=>{state.order.time=t.dataset.time;render();});
   const pl=document.getElementById("placeBtn");if(pl)pl.onclick=placeOrder;
-  document.querySelectorAll("[data-track]").forEach(b=>b.onclick=()=>trackOrder(+b.dataset.track));
+  document.querySelectorAll("[data-track]").forEach(b=>b.onclick=()=>trackOrder(b.dataset.track));
   const tt=document.getElementById("trackBtn");if(tt)tt.onclick=()=>{state.trackInput=!state.trackInput;if(!state.trackInput){state.trackErr="";state.trackInputVal="";}render();};
   const tn=document.getElementById("trackNum");if(tn)tn.oninput=e=>{state.trackInputVal=e.target.value;};
-  const tg=document.getElementById("trackGo");if(tg)tg.onclick=async()=>{const n=parseInt(state.trackInputVal,10);
-    if(!n||n<1){state.trackErr="Въведи валиден номер на поръчка.";render();return;}
+  const tg=document.getElementById("trackGo");if(tg)tg.onclick=async()=>{const n=state.trackInputVal.trim();
+    if(!n){state.trackErr="Въведи номер на поръчка.";render();return;}
     let o=state.orders.find(x=>x.docID===n);
     if(!o){const fresh=await fetchOrderFromServer(n);
       if(fresh){state.orders.unshift(fresh);o=fresh;persist();}}
@@ -1815,7 +1815,7 @@ function bindAdmin(){
       glog("admin:product:availability",{id:it.id,available:it.available});
     }catch(err){alert("Грешка при запис: "+err.message);}
     render();});
-  document.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>advanceOrder(+b.dataset.adv));
+  document.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>advanceOrder(b.dataset.adv));
   // editor
   const as=document.getElementById("ascrim");if(as)as.onclick=closeEditor;
   const acl=document.getElementById("aclose");if(acl)acl.onclick=closeEditor;
