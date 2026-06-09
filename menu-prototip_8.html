@@ -1009,7 +1009,7 @@ async function boot(){
   }
   glog("app:boot",{groups:state.groups.length,items:state.items.length,savedOrders:state.orders.length});
   let layoutT;
-  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{syncRotateLock();if(state.mode!=="admin"&&!document.activeElement?.matches("input,textarea,select"))render();},100);};
+  const onLayoutChange=()=>{clearTimeout(layoutT);layoutT=setTimeout(()=>{syncRotateLock();if(state.mode!=="admin"&&state.view!=="confirm"&&!document.activeElement?.matches("input,textarea,select"))render();},100);};
   window.addEventListener("resize",onLayoutChange);
   window.addEventListener("orientationchange",onLayoutChange);
   syncRotateLock();
@@ -1228,7 +1228,7 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
   if(inf){
     // text = точният текст, който се показва в toast/лога (Viber се праща от сървъра).
     const e={channel:inf.channel,toast:inf.toast,text:messageFor(o,s),docID,time:nowHM()};
-    o.notifs.push(e);toast(e);
+    o.notifs.push(e);if(!state.autoSim)toast(e);
   }
   saveOrderToServer(o);
   persist();if(state.view==="confirm")refreshConfirm();}
