@@ -1264,7 +1264,14 @@ function render(){
   const psT=grab(".panel-scroll"),ssT=grab(".sheet-scroll"),asT=grab(".amodal-scroll");
   const foot=appFooter();
   if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
-  else if(state.view==="confirm"){root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;bindCommon();bindConfirm();}
+  else if(state.view==="confirm"){
+    const ec=document.querySelector(".confirm");
+    if(ec){
+      const ifr=ec.querySelector("iframe.venue-map"),src=ifr?ifr.src:null;
+      const h=confirmView();ec.innerHTML=h.replace(/^<div class="confirm">/,"").replace(/<\/div>$/,"");
+      if(src){const ni=ec.querySelector("iframe.venue-map");if(ni&&ni.src!==src)ni.src=src;}
+    }else{root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;}
+    bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+clientShell();bindCommon();bindClient();}
   document.body.classList.toggle("has-demobar",state.mode!=="admin"&&!!state.runtime.demoMode);
   document.body.classList.toggle("cart-open",state.mode!=="admin"&&(state.view==="cart"||state.view==="checkout"));
