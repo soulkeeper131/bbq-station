@@ -20,6 +20,7 @@ import { createServer } from "node:http";
 import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join, normalize } from "node:path";
 import { timingSafeEqual } from "node:crypto";
+import { gzipSync, brotliCompressSync } from "node:zlib";
 
 function loadConfig() {
   let fileCfg = {};
@@ -268,6 +269,24 @@ log("[boot]", `Режим: ${DEMO_MODE ? "демо" : "продукция"} | Ad
 if (!viberReady) {
   console.warn("⚠️  Viber не е конфигуриран (липсват INFOBIP_* / secrets.local.json). " +
     "Менюто ще работи, но реални съобщения няма да се пращат.");
+}
+
+// ── Pre-compressed HTML за светкавично сервиране ─────────────────
+// Gzip и Brotli се подготвят веднъж при старт, не при всяка заявка.
+const HTML_BUF = readFileSync(HTML);
+const HTML_GZIP = gzipSync(HTML_BUF, { level: 6 });
+const HTML_BROTLI = brotliCompressSync(HTML_BUF);
+log("[init]", `HTML ${(HTML_BUF.length/1024).toFixed(0)}KB → gzip ${(HTML_GZIP.length/1024).toFixed(0)}KB (${((1-HTML_GZIP.length/HTML_BUF.length)*100).toFixed(0)}%) / brotli ${(HTML_BROTLI.length/1024).toFixed(0)}KB (${((1-HTML_BROTLI.length/HTML_BUF.length)*100).toFixed(0)}%)`);
+
+function serveCompressed(res, enc) {
+  let buf, cenc;
+  if (enc.includes("br")) { buf = HTML_BROTLI; cenc = "br"; }
+  else if (enc.includes("gzip")) { buf = HTML_GZIP; cenc = "gzip"; }
+  else { buf = HTML_BUF; cenc = ""; }
+  const h = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" };
+  if (cenc) h["Content-Encoding"] = cenc;
+  res.writeHead(200, h);
+  res.end(buf);
 }
 
 const server = createServer(async (req, res) => {
@@ -525,16 +544,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Всичко друго → връща менюто.
-  readFile(HTML, (err, buf) => {
-    if (err) {
-      log("[http] 404", MENU_FILE);
-      res.writeHead(404);
-      return res.end(`${MENU_FILE} не е намерен в тази папка.`);
-    }
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
-    res.end(buf);
-  });
+  // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
+  const ae = req.headers["accept-encoding"] || "";
+  serveCompressed(res, ae);
 });
 
 server.listen(PORT, "0.0.0.0", () => {
