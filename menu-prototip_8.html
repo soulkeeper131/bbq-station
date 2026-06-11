@@ -7,6 +7,14 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>BBQ Station — Поръчка за вземане</title>
+<meta name="description" content="BBQ Station — Поръчай прясно приготвено BBQ за вземане. Меню с меса, гарнитури, сосове и напитки.">
+<meta name="theme-color" content="#d25a2a">
+<meta property="og:title" content="BBQ Station — Поръчка за вземане">
+<meta property="og:description" content="Прясно приготвено BBQ за вземане. Разгледай менюто и поръчай онлайн.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bbqstation.blv.bg/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://bbqstation.blv.bg/">
 <!-- v=20260609-2324 -->
 <script>
 (function(){var v='202606092324';if(sessionStorage.getItem('_bv')!==v){sessionStorage.setItem('_bv',v);if(location.search.indexOf('v=')===-1)location.replace(location.pathname+'?v='+v+location.hash);}})();
@@ -25,6 +33,7 @@
     --shadow-card:0 12px 26px -18px rgba(60,30,12,.55); --ember-tint:rgba(210,90,42,.1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  :focus-visible{outline:3px solid var(--ember);outline-offset:2px;border-radius:4px}
   /* Мобилно: обвивката на количката е прозрачна за layout-а. */
   .panel-rail{display:contents}
   /* iOS Safari: спираме хоризонталното „дърпане" (off-screen fixed панелите се броят
@@ -726,6 +735,8 @@
 </style>
 </head>
 <body>
+<a href="#root" class="skip-link">Към съдържанието</a>
+<style>.skip-link{position:absolute;left:-999px;top:8px;z-index:9999;padding:12px 20px;background:var(--ember);color:#fff;border-radius:8px;font-weight:600;text-decoration:none}.skip-link:focus{left:8px}</style>
 <div id="rotateLock" class="rotate-lock" aria-live="polite" hidden>
   <div class="rotate-lock-inner">
     <span class="rotate-ic" aria-hidden="true">📱</span>
@@ -966,7 +977,7 @@ function itemToStore(it){
 function groupName(gid){return(state.groups.find(g=>g.id===gid)||{}).name||"—";}
 
 async function boot(){
-  if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";document.body.appendChild(t);}
+  if(!document.getElementById("toasts")){const t=document.createElement("div");t.id="toasts";t.setAttribute("role","alert");t.setAttribute("aria-live","polite");document.body.appendChild(t);}
   loadAdminKey();
   try{
     const rc=await fetch("/api/config");
@@ -1244,7 +1255,7 @@ function clientShell(){
   const rail=`<div class="panel-rail">`+cartPanel()+`</div>`;
   const overlays=floatCart()+sheet();
   if(isSidePanelLayout()){
-    return `<div class="app">`+header()+
+    return `<main class="app" id="main-content">`+header()+
       `<div class="layout"><div class="main">`+trackBanner()+`<div class="menu-sticky">`+tabs()+`</div>`+menu()+foot+
       `</div>`+rail+`</div>`+overlays+`</div>`;
   }
@@ -1296,11 +1307,11 @@ function render(){
   const grab=s=>{const e=document.querySelector(s);return e?e.scrollTop:0;};
   const psT=grab(".panel-scroll"),ssT=grab(".sheet-scroll"),asT=grab(".amodal-scroll");
   const foot=appFooter();
-  if(state.mode==="admin"){root.innerHTML=demobar()+`<div class="app">`+adminView()+`</div>`+foot+adminModal();bindCommon();bindAdmin();}
+  if(state.mode==="admin"){root.innerHTML=demobar()+`<main class="app" id="main-content">`+adminView()+`</main>`+foot+adminModal();bindCommon();bindAdmin();}
   else if(state.view==="confirm"){
     const ec=document.querySelector(".confirm");
     if(ec){refreshConfirm();}
-    else{root.innerHTML=demobar()+`<div class="app">`+confirmView()+`</div>`+foot;}
+    else{root.innerHTML=demobar()+`<main class="app" id="main-content">`+confirmView()+`</main>`+foot;}
     bindCommon();bindConfirm();}
   else{root.innerHTML=demobar()+clientShell();bindCommon();bindClient();}
   document.body.classList.toggle("has-demobar",state.mode!=="admin"&&!!state.runtime.demoMode);
@@ -1337,7 +1348,7 @@ function trackBanner(){
     row=`<div class="tb-l"><span class="tb-dot s0"></span>
       <div class="tb-tx"><b>Проследи поръчка</b><span>Въведи номер за проверка на статуса</span></div></div>`;
   }
-  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" placeholder="напр. k7m2x" value="${state.trackInputVal||''}">
+  const inp=state.trackInput?`<div class="tb-input"><input id="trackNum" aria-label="Номер на поръчка" placeholder="напр. k7m2x" value="${state.trackInputVal||''}">
     <button class="tb-go" id="trackGo">Провери</button></div>${state.trackErr?`<div class="tb-err">${state.trackErr}</div>`:''}`:'';
   return `<div class="trackbar ${active?'active':''}">${row}${inp}</div>`;
 }
@@ -1352,10 +1363,10 @@ function demobar(){
     <button class="${state.mode==='admin'?'on':''}" data-mode="admin">⚙️ Администрация</button>
   </div></div>`;}
 
-function header(){return `<header><div class="brand">
+function header(){return `<header role="banner"><div class="brand">
     <div><h1><span class="amp">BBQ</span> Station</h1><div class="sub">Поръчка за вземане · ${VENUE.address}</div></div>
-    <div class="brand-right"><button class="track-btn" id="trackBtn"><span class="t-icon">🔍</span> Проследи</button>
-    <button class="cart-btn" id="openCart"><span>Кошница</span>${cartCount()?`<span class="count js-cart-count">${cartCount()}</span>`:""}</button></div>
+    <div class="brand-right"><button class="track-btn" id="trackBtn" aria-label="Проследи поръчка" aria-label="Проследи поръчка"><span class="t-icon" aria-hidden="true">🔍</span> Проследи</button>
+    <button class="cart-btn" id="openCart" aria-label="Отвори количка" aria-label="Отвори количка"><span>Кошница</span>${cartCount()?`<span class="count js-cart-count" aria-label="${cartCount()} продукта" aria-label="${cartCount()} продукта">${cartCount()}</span>`:""}</button></div>
   </div></header>`;}
 function imgFor(it){return (it&&state.productImages[it.id])||null;}
 // Напитки — продуктови снимки без фон; останалите ястия — cover върху градиента.
@@ -1414,7 +1425,7 @@ function scrollToGroup(gid){
   el.scrollIntoView({behavior:instant?"auto":"smooth",block:"start"});
 }
 function tabs(){return `<div class="tabs" role="tablist">${state.groups.map(g=>
-  `<button type="button" role="tab" class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</button>`).join("")}</div>`;}
+  `<button type="button" role="tab" aria-selected="${g.id===state.activeGroup?'true':'false'}" class="tab ${g.id===state.activeGroup?'active':''}" data-g="${g.id}">${g.name}</button>`).join("")}</div>`;}
 function menu(){let out=`<div class="menu">`;state.groups.forEach(g=>{
     const items=state.items.filter(i=>i.groupID===g.id);
     out+=`<div id="grp-${g.id}"><div class="group-title">${g.name} <small>${items.length} ястия</small></div><div class="grid">`;

@@ -469,6 +469,18 @@ const server = createServer(async (req, res) => {
     }));
   }
 
+  // robots.txt — позволява индексиране, забранява /api
+  if (req.method === "GET" && req.url === "/robots.txt") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    return res.end("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\nSitemap: https://bbqstation.blv.bg/sitemap.xml\n");
+  }
+
+  // sitemap.xml
+  if (req.method === "GET" && req.url === "/sitemap.xml") {
+    res.writeHead(200, { "Content-Type": "application/xml" });
+    return res.end(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n<url><loc>https://bbqstation.blv.bg/</loc><priority>1.0</priority></url>\n</urlset>`);
+  }
+
   if (req.method === "GET" && req.url === "/api/config") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ demoMode: DEMO_MODE, adminRequired: Boolean(ADMIN_API_KEY) }));
