@@ -17,9 +17,9 @@
 // Локално стартиране:  node local-server.mjs  →  http://localhost:3000
 
 import { createServer } from "node:http";
-import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
-import { join, normalize } from "node:path";
-import { timingSafeEqual } from "node:crypto";
+import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, readdirSync, rmdirSync, copyFileSync, statSync } from "node:fs";
+import { join, normalize, basename } from "node:path";
+import { timingSafeEqual, createHash } from "node:crypto";
 import { gzipSync, brotliCompressSync } from "node:zlib";
 
 function loadConfig() {
@@ -269,6 +269,67 @@ const saveMenuOverrides = () => {
 };
 const ordersList = () =>
   [...orders.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+// ── Backup система ────────────────────────────────────────────────
+const BACKUP_DIR = join(DATA_DIR, "backups");
+const BACKUP_MAX = 24;
+const BACKUP_INTERVAL = 3600_000;
+let lastBackupHash = "";
+
+function hashData() {
+  const h = createHash("sha256");
+  if (existsSync(ORDERS_JSON)) h.update(readFileSync(ORDERS_JSON));
+  if (existsSync(MENU_JSON)) h.update(readFileSync(MENU_JSON));
+  if (existsSync(IMAGES_JSON)) h.update(readFileSync(IMAGES_JSON));
+  return h.digest("hex");
+}
+
+function createBackup() {
+  try {
+    const now = new Date();
+    const tag = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const dir = join(BACKUP_DIR, tag);
+    const currentHash = hashData();
+    if (currentHash === lastBackupHash) { log("[backup]", "няма промени — skip"); return null; }
+    lastBackupHash = currentHash;
+    mkdirSync(dir, { recursive: true });
+    for (const src of [ORDERS_JSON, MENU_JSON, IMAGES_JSON]) {
+      if (existsSync(src)) copyFileSync(src, join(dir, basename(src)));
+    }
+    if (existsSync(UPLOAD_DIR)) {
+      const upDst = join(dir, "uploads");
+      mkdirSync(upDst, { recursive: true });
+      for (const f of readdirSync(UPLOAD_DIR)) {
+        const sf = join(UPLOAD_DIR, f);
+        if (statSync(sf).isFile()) copyFileSync(sf, join(upDst, f));
+      }
+    }
+    const meta = { created: now.toISOString(), orders: orders.size, images: Object.keys(productImages).length, hash: currentHash };
+    writeFileSync(join(dir, "backup.json"), JSON.stringify(meta, null, 2));
+    const all = listBackups();
+    for (const b of all.slice(BACKUP_MAX)) { try { rmdirSync(b.path, { recursive: true }); } catch {} }
+    log("[backup]", `създаден: ${tag} | поръчки=${orders.size} снимки=${Object.keys(productImages).length} | общо=${all.length}`);
+    return tag;
+  } catch (e) { log("[backup]", "ГРЕШКА:", String(e)); return null; }
+}
+
+function listBackups() {
+  try {
+    if (!existsSync(BACKUP_DIR)) return [];
+    return readdirSync(BACKUP_DIR)
+      .map(name => ({ name, path: join(BACKUP_DIR, name), meta: readBackupMeta(name) }))
+      .filter(b => b.meta).sort((a, b) => b.name.localeCompare(a.name));
+  } catch { return []; }
+}
+
+function readBackupMeta(tag) {
+  try {
+    const metaPath = join(BACKUP_DIR, tag, "backup.json");
+    return existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, "utf8")) : null;
+  } catch { return null; }
+}
+
+setTimeout(() => { createBackup(); setInterval(createBackup, BACKUP_INTERVAL); }, 300_000);
 const loadOrders = () => {
   try {
     if (!existsSync(ORDERS_JSON)) return;
@@ -732,6 +793,55 @@ th{color:#888;font-weight:600}
 </body></html>`;
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
     return res.end(html);
+  }
+
+  // ── Backup API (само за админ) ──────────────────────────────────
+  // POST /api/admin/backup → ръчен backup
+  if (req.method === "POST" && req.url === "/api/admin/backup") {
+    if (!requireAdmin(req, res)) return;
+    const tag = createBackup();
+    res.writeHead(tag ? 200 : 304, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify(tag ? { ok: true, backup: tag } : { ok: true, message: "no changes" }));
+  }
+
+  // GET /api/admin/backups → списък с налични backup-и
+  if (req.method === "GET" && req.url === "/api/admin/backups") {
+    if (!requireAdmin(req, res)) return;
+    const list = listBackups().map(b => ({ name: b.name, created: b.meta?.created, orders: b.meta?.orders, images: b.meta?.images }));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ backups: list, total: list.length, max: BACKUP_MAX }));
+  }
+
+  // POST /api/admin/restore → преглед на backup данни
+  if (req.method === "POST" && req.url === "/api/admin/restore") {
+    if (!requireAdmin(req, res)) return;
+    let body;
+    try { body = await readBody(req); } catch {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "payload too large" }));
+    }
+    try {
+      const { backup: tag } = JSON.parse(body || "{}");
+      if (!tag) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Required: backup (timestamp tag)" }));
+      }
+      const dir = join(BACKUP_DIR, tag);
+      if (!existsSync(dir)) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "backup not found" }));
+      }
+      const meta = readBackupMeta(tag);
+      const ordersFile = join(dir, "orders.json");
+      const orders = existsSync(ordersFile) ? JSON.parse(readFileSync(ordersFile, "utf8")) : [];
+      const imagesFile = join(dir, "product-images.json");
+      const images = existsSync(imagesFile) ? JSON.parse(readFileSync(imagesFile, "utf8")) : {};
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ backup: tag, meta, orders, images }));
+    } catch (e) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: String(e) }));
+    }
   }
 
   // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
