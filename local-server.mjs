@@ -103,6 +103,15 @@ function requireAdmin(req, res) {
 
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?";
 
+  // 📵 Админ достъп САМО през HTTPS
+  const proto = req.headers["x-forwarded-proto"] || "";
+  if (proto && proto !== "https") {
+    auditLog("ADMIN_INSECURE", req, `blocked HTTP (proto=${proto})`);
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "https_required" }));
+    return false;
+  }
+
   // Проверка за lockout
   const rec = adminFails.get(ip);
   if (rec && rec.lockoutUntil > Date.now()) {
@@ -262,6 +271,12 @@ if (!viberReady) {
 }
 
 const server = createServer(async (req, res) => {
+  // Security: HSTS + basic headers за всеки отговор
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
   // Health check за Coolify / load balancer.
   if (req.method === "GET" && (req.url === "/healthz" || req.url === "/health")) {
     res.writeHead(200, { "Content-Type": "application/json" });
