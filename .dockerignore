@@ -1,9 +1,8 @@
-node_modules
-npm-debug.log
-secrets.local.json
-.env
-.env.*
 .git
+data
+node_modules
 .gitignore
 *.md
-.DS_Store
+docs
+smoke-test.sh
+.vscode
