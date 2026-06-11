@@ -19,6 +19,7 @@
 import { createServer } from "node:http";
 import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join, normalize } from "node:path";
+import { timingSafeEqual } from "node:crypto";
 
 function loadConfig() {
   let fileCfg = {};
@@ -79,9 +80,76 @@ function adminKeyFrom(req) {
   return m ? m[1] : "";
 }
 
+// ── Admin Rate Limiting & Audit ──────────────────────────────────
+// Предпазва от brute-force атаки срещу админ ключа.
+const ADMIN_FAIL_MAX = 5;          // max грешни опита
+const ADMIN_FAIL_WINDOW = 60_000;  // прозорец: 1 минута
+const ADMIN_LOCKOUT = 15 * 60_000; // блокировка: 15 минути
+const adminFails = new Map();      // ip → {count, firstFail, lockoutUntil}
+
+function tsAudit() {
+  const d = new Date();
+  return d.toISOString().replace("T", " ").slice(0, 19);
+}
+
+function auditLog(action, req, detail = "") {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?";
+  const ua = req.headers["user-agent"] || "?";
+  console.log(`${ts()} AUDIT [${tsAudit()}] ${action} | IP=${ip} | ${detail} | UA=${ua.slice(0,80)}`);
+}
+
 function requireAdmin(req, res) {
   if (!ADMIN_API_KEY) return true;
-  if (adminKeyFrom(req) === ADMIN_API_KEY) return true;
+
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?";
+
+  // Проверка за lockout
+  const rec = adminFails.get(ip);
+  if (rec && rec.lockoutUntil > Date.now()) {
+    const rem = Math.ceil((rec.lockoutUntil - Date.now()) / 1000);
+    auditLog("LOCKOUT", req, `blocked ${rem}s remaining`);
+    res.writeHead(429, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "too_many_attempts", retry_after: rem }));
+    return false;
+  }
+
+  // Timing-safe сравнение (предпазва от timing attacks)
+  const provided = adminKeyFrom(req);
+  const expected = Buffer.from(ADMIN_API_KEY);
+  const actual = Buffer.from(provided || "");
+
+  let isValid = false;
+  if (actual.length === expected.length) {
+    try {
+      isValid = timingSafeEqual(actual, expected);
+    } catch {
+      isValid = false;
+    }
+  }
+
+  if (isValid) {
+    // Успешен вход — чистим fail брояча
+    adminFails.delete(ip);
+    auditLog("ADMIN_OK", req, "authenticated");
+    return true;
+  }
+
+  // Грешен ключ — обновяваме fail брояча
+  const now = Date.now();
+  if (!rec || rec.firstFail < now - ADMIN_FAIL_WINDOW) {
+    // Нов прозорец
+    adminFails.set(ip, { count: 1, firstFail: now, lockoutUntil: 0 });
+  } else {
+    rec.count++;
+    if (rec.count >= ADMIN_FAIL_MAX) {
+      rec.lockoutUntil = now + ADMIN_LOCKOUT;
+      auditLog("LOCKOUT_START", req, `${ADMIN_FAIL_MAX} fails, locked for ${ADMIN_LOCKOUT/60000}min`);
+    }
+  }
+  const remaining = ADMIN_FAIL_MAX - (adminFails.get(ip)?.count || 0);
+
+  auditLog("ADMIN_FAIL", req, `attempt ${adminFails.get(ip)?.count}/${ADMIN_FAIL_MAX}, ${remaining} remaining`);
+
   res.writeHead(401, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "unauthorized" }));
   return false;
