@@ -48,6 +48,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const MENU_FILE = process.env.MENU_FILE || "menu-prototip_8.html";
 const HTML = new URL(`./${MENU_FILE}`, import.meta.url);
 const viberReady = Boolean(cfg.baseUrl && cfg.apiKey && cfg.sender);
+const startTime = Date.now();
+let errorCount = 0;
 
 // ── Логинг ──────────────────────────────────────────────────────
 // Единен timeline в терминала. ВНИМАНИЕ: API ключът НИКОГА не се логва.
@@ -324,13 +326,45 @@ const server = createServer(async (req, res) => {
 
   // Health check за Coolify / load balancer.
   if (req.method === "GET" && (req.url === "/healthz" || req.url === "/health")) {
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const mem = process.memoryUsage();
+    const lastOrder = ordersList()[0];
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, viber: viberReady, demoMode: DEMO_MODE, adminRequired: Boolean(ADMIN_API_KEY) }));
+    return res.end(JSON.stringify({
+      ok: true,
+      uptime,
+      uptimeHuman: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`,
+      orders: orders.size,
+      lastOrderAt: lastOrder ? new Date(lastOrder.updatedAt).toISOString() : null,
+      errors: errorCount,
+      memory: { rssMB: Math.round(mem.rss / 1024 / 1024), heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024), heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024) },
+      viber: viberReady,
+      demoMode: DEMO_MODE,
+      node: process.version,
+    }));
   }
 
   if (req.method === "GET" && req.url === "/api/config") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ demoMode: DEMO_MODE, adminRequired: Boolean(ADMIN_API_KEY) }));
+  }
+
+  // Metrics endpoint за Uptime Kuma / външен мониторинг.
+  if (req.method === "GET" && req.url === "/api/metrics") {
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const lastOrder = ordersList()[0];
+    const minutesSinceLastOrder = lastOrder ? Math.floor((Date.now() - lastOrder.updatedAt) / 60000) : -1;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      status: "healthy",
+      uptime_seconds: uptime,
+      orders_total: orders.size,
+      minutes_since_last_order: minutesSinceLastOrder,
+      errors_total: errorCount,
+      memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      viber_ready: viberReady,
+      demo_mode: DEMO_MODE,
+    }));
   }
 
   // Клиентски събития → единен лог в терминала (поръчки, смяна на статус и т.н.).
@@ -580,11 +614,68 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Admin dashboard — само с admin key.
+  if (req.method === "GET" && (req.url === "/admin" || req.url.startsWith("/admin?"))) {
+    if (!requireAdmin(req, res)) return;
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const h = Math.floor(uptime / 3600), m = Math.floor((uptime % 3600) / 60), s = uptime % 60;
+    const mem = process.memoryUsage();
+    const rss = Math.round(mem.rss / 1024 / 1024);
+    const heap = Math.round(mem.heapUsed / 1024 / 1024);
+    const all = ordersList();
+    const lastOrder = all[0];
+    const html = `<!DOCTYPE html>
+<html lang="bg">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BBQ Station — Admin Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:20px;min-height:100vh}
+h1{font-size:1.4rem;color:#ff6b35;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.card{background:#1a1a1a;border-radius:10px;padding:16px;border:1px solid #2a2a2a}
+.card .label{font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+.card .value{font-size:1.8rem;font-weight:700;color:#fff}
+.card .sub{font-size:0.8rem;color:#666;margin-top:4px}
+.ok{color:#4caf50}.warn{color:#ff9800}.err{color:#f44336}
+table{width:100%;border-collapse:collapse;margin-top:16px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #2a2a2a;font-size:0.85rem}
+th{color:#888;font-weight:600}
+.status-1{color:#ff9800}.status-2{color:#2196f3}.status-3{color:#4caf50}.status-4{color:#f44336}
+.refresh{font-size:0.75rem;color:#555;text-align:right;margin-bottom:8px}
+</style></head>
+<body>
+<h1>🔥 BBQ Station — Admin Dashboard</h1>
+<div class="refresh">Обновено: ${new Date().toLocaleTimeString("bg-BG")} | Авто-опресняване: 30s</div>
+<div class="grid">
+<div class="card"><div class="label">Uptime</div><div class="value">${h}h ${m}m</div><div class="sub">${s}s</div></div>
+<div class="card"><div class="label">Поръчки</div><div class="value">${orders.size}</div><div class="sub">${lastOrder ? "последна: "+new Date(lastOrder.updatedAt).toLocaleTimeString("bg-BG") : "няма"}</div></div>
+<div class="card"><div class="label">Памет</div><div class="value">${rss} MB</div><div class="sub">heap: ${heap} MB</div></div>
+<div class="card"><div class="label">Грешки</div><div class="value ${errorCount ? 'err' : 'ok'}">${errorCount}</div><div class="sub">от старта</div></div>
+<div class="card"><div class="label">Viber</div><div class="value ${viberReady ? 'ok' : 'warn'}">${viberReady ? '✅' : '❌'}</div><div class="sub">${viberReady ? 'конфигуриран' : 'не е'}</div></div>
+<div class="card"><div class="label">Режим</div><div class="value ${DEMO_MODE ? 'warn' : 'ok'}">${DEMO_MODE ? 'DEMO' : 'PROD'}</div><div class="sub">Node ${process.version}</div></div>
+</div>
+<h2 style="font-size:1.1rem;color:#888;margin-top:8px">Последни поръчки</h2>
+<table>
+<thead><tr><th>#</th><th>Име</th><th>Статус</th><th>Телефон</th><th>Обновена</th></tr></thead>
+<tbody>${all.slice(0,20).map(o => {
+  const statuses = {1:"🆕 Нова",2:"👨‍🍳 Приготвя",3:"✅ Готова",4:"❌ Отказана"};
+  const sc = "status-" + (o.status || 0);
+  return `<tr><td>${o.docID}</td><td>${(o.name||"").slice(0,25)}</td><td class="${sc}">${statuses[o.status]||"?"}</td><td>${o.phone||"—"}</td><td>${new Date(o.updatedAt).toLocaleTimeString("bg-BG")}</td></tr>`;
+}).join("")}</tbody>
+</table>
+<script>setTimeout(()=>location.reload(),30000)</script>
+</body></html>`;
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
+    return res.end(html);
+  }
+
   // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
   const ae = req.headers["accept-encoding"] || "";
   serveCompressed(res, ae);
 
   } catch (err) {
+    errorCount++;
     log("[server] unhandled error:", err.message || String(err));
     if (!res.headersSent) {
       res.writeHead(500, { "Content-Type": "application/json" });
