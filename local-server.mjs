@@ -17,7 +17,7 @@
 // Локално стартиране:  node local-server.mjs  →  http://localhost:3000
 
 import { createServer } from "node:http";
-import { readFile, readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, readdirSync, rmdirSync, copyFileSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, readdirSync, rmdirSync, copyFileSync, statSync } from "node:fs";
 import { join, normalize, basename } from "node:path";
 import { timingSafeEqual, createHash } from "node:crypto";
 import { gzipSync, brotliCompressSync } from "node:zlib";
@@ -700,14 +700,18 @@ const server = createServer(async (req, res) => {
       return res.end("bad path");
     }
     const ext = (name.split(".").pop() || "").toLowerCase();
-    return readFile(join(UPLOAD_DIR, name), (err, buf) => {
-      if (err) {
+    const filePath = join(UPLOAD_DIR, name);
+    try {
+      const buf = readFileSync(filePath);
+      res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "public, max-age=31536000" });
+      return res.end(buf);
+    } catch (err) {
+      if (err.code === "ENOENT") {
         res.writeHead(404);
         return res.end("not found");
       }
-      res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "public, max-age=31536000" });
-      res.end(buf);
-    });
+      throw err;
+    }
   }
 
   // Viber proxy → само за админ (тестове). В продукция Viber се праща от сървъра.
