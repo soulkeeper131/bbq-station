@@ -167,6 +167,67 @@ function requireAdmin(req, res) {
   return false;
 }
 
+// ── General Rate Limiting (sliding window per IP) ─────────────────
+// Предпазва от abuse на публичните endpoints.
+const RL_WINDOW = 10_000;  // 10 секунди sliding window
+const RL_LIMITS = {
+  "POST:/api/orders": 5,       // създаване на поръчки
+  "GET:/api/orders/list": 10,  // тракинг на поръчка
+  "POST:/api/send-viber": 2,   // Viber тестове
+  "GET:/healthz": 30,          // health checks
+  "GET:/api/config": 30,
+  "GET:/api/metrics": 30,
+};
+const RL_DEFAULT = 60;  // главна страница, статични ресурси
+const rlBuckets = new Map();  // ip → [{key, ts}]
+let rlCleanCounter = 0;
+
+function getIP(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?").split(",")[0].trim();
+}
+
+function rateLimitKey(req) {
+  const m = req.method;
+  const u = req.url.split("?")[0];
+  if (u.startsWith("/api/orders/")) return `${m}:/api/orders/list`;
+  return `${m}:${u}`;
+}
+
+function checkRateLimit(req, res) {
+  const ip = getIP(req);
+  const key = rateLimitKey(req);
+  const limit = RL_LIMITS[key] ?? RL_DEFAULT;
+  const now = Date.now();
+
+  let bucket = rlBuckets.get(ip);
+  if (!bucket) { bucket = []; rlBuckets.set(ip, bucket); }
+
+  const cutoff = now - RL_WINDOW;
+  const recent = bucket.filter(e => e.ts > cutoff);
+
+  if (recent.length >= limit) {
+    const retry = Math.ceil((recent[0].ts + RL_WINDOW - now) / 1000) || 1;
+    res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(retry) });
+    res.end(JSON.stringify({ error: "too_many_requests", retry_after: retry }));
+    return false;
+  }
+
+  recent.push({ key, ts: now });
+  rlBuckets.set(ip, recent);
+
+  // Периодично чистене на стари IP-та
+  if (++rlCleanCounter > 1000) {
+    rlCleanCounter = 0;
+    for (const [k, entries] of rlBuckets) {
+      const clean = entries.filter(e => e.ts > cutoff);
+      if (clean.length === 0) rlBuckets.delete(k);
+      else rlBuckets.set(k, clean);
+    }
+  }
+
+  return true;
+}
+
 // Поръчки: в паметта + orders.json на volume (оцеляват след рестарт/деплой).
 const orders = new Map();
 const ORDERS_MAX = 500;
@@ -323,6 +384,9 @@ const server = createServer(async (req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  // Rate limiting за всички заявки (освен OPTIONS/preflight).
+  if (req.method !== "OPTIONS" && !checkRateLimit(req, res)) return;
 
   // Health check за Coolify / load balancer.
   if (req.method === "GET" && (req.url === "/healthz" || req.url === "/health")) {
