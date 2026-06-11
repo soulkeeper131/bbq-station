@@ -30,7 +30,7 @@
   /* iOS Safari: спираме хоризонталното „дърпане" (off-screen fixed панелите се броят
      в скролваемата ширина на Safari, но не и на Chrome). clip не създава scroll
      контейнер, затова не чупи sticky хедъра. */
-  html,body{height:100%;width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;
+  html,body{height:100%;width:100%;max-width:100%;overflow-x:clip;overscroll-behavior-x:none;overscroll-behavior-y:none;
     -webkit-text-size-adjust:100%;text-size-adjust:100%}
   /* iOS Safari: бързи тапове на +/− не трябва да приближават (double-tap zoom). */
   button,.tab,.card,.opt,.time-opt,.qty button,.add-fab,.cart-line .q button,.demobar .seg button,
