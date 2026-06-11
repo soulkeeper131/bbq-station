@@ -7,7 +7,6 @@ RUN apk add --no-cache curl
 WORKDIR /app
 COPY package.json ./
 COPY local-server.mjs ./
-COPY menu-prototip_8.html ./
 COPY public/ ./public/
 
 RUN mkdir -p /app/data/uploads /app/data/backups
