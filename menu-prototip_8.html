@@ -921,21 +921,11 @@ function mergeOrders(local,remote){
   });
   return [...byId.values()].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
 }
-// Докато клиентът гледа статуса (тракинг), периодично дърпаме промени от сървъра.
+// Автоматичното обновяване е изключено — потребителят обновява ръчно с refresh/F5.
 let trackTimer=null;
 function startTrackPolling(docID){
   stopTrackPolling();
-  trackTimer=setInterval(async()=>{
-    if(state.view!=="confirm"||state.activeOrderId!==docID){stopTrackPolling();return;}
-    const fresh=await fetchOrderFromServer(docID);
-    if(!fresh)return;
-    const o=state.orders.find(x=>x.docID===docID);
-    if(o&&(o.status!==fresh.status||(o.notifs||[]).length!==(fresh.notifs||[]).length)){
-      o.status=fresh.status;o.notifs=fresh.notifs||o.notifs;o.lines=fresh.lines||o.lines;
-      o.total=fresh.total??o.total;o.time=fresh.time??o.time;
-      glog("track:update",{docID,status:fresh.status});render();
-    }
-  },5000);
+  // NO-OP: авто-polling е изключен. Потребителят натиска F5 за актуален статус.
 }
 function stopTrackPolling(){if(trackTimer){clearInterval(trackTimer);trackTimer=null;}}
 function normalizeMenuItem(it){
@@ -1238,12 +1228,12 @@ function setStatus(docID,s){const o=state.orders.find(x=>x.docID===docID);if(!o)
     o.notifs.push(e);if(!state.autoSim)toast(e);
   }
   saveOrderToServer(o);
-  persist();if(state.view==="confirm")refreshConfirm();}
+  persist();if(state.view==="confirm" && !state.autoSim)refreshConfirm();}
 function trackOrder(docID){state.tracking=true;state.activeOrderId=docID;state.view="confirm";state.trackInput=false;state.trackErr="";history.replaceState(null,"",keepVParam("track",docID));render();}
 function advanceOrder(docID){const o=state.orders.find(x=>x.docID===docID);if(o&&o.status<4)setStatus(docID,o.status+1);}
-function runAutoSim(docID){state.autoSim=true;refreshConfirm();const steps=[2,3];let i=0;
+function runAutoSim(docID){state.autoSim=true;const steps=[2,3];let i=0;
   const next=()=>{if(!state.autoSim||state.activeOrderId!==docID)return;
-    if(i>=steps.length){state.autoSim=false;refreshConfirm();return;}
+    if(i>=steps.length){state.autoSim=false;return;}
     setStatus(docID,steps[i]);i++;simTimer=setTimeout(next,2000);};
   simTimer=setTimeout(next,1700);}
 function stopSim(){state.autoSim=false;clearTimeout(simTimer);}
