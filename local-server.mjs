@@ -45,8 +45,11 @@ const ADMIN_API_KEY = cfg.adminApiKey;
 const DEMO_MODE = !["0", "false", "no"].includes(String(process.env.DEMO_MODE || "").toLowerCase());
 const BODY_MAX = 8 * 1024 * 1024;
 const PORT = Number(process.env.PORT) || 3000;
-const MENU_FILE = process.env.MENU_FILE || "menu-prototip_8.html";
+const MENU_FILE = process.env.MENU_FILE || "public/index.html";
 const HTML = new URL(`./${MENU_FILE}`, import.meta.url);
+const CSS_FILE = new URL("./public/style.css", import.meta.url);
+const JS_FILE = new URL("./public/app.js", import.meta.url);
+const BUILD_VERSION = String(Math.floor(Date.now() / 1000));
 const viberReady = Boolean(cfg.baseUrl && cfg.apiKey && cfg.sender);
 const startTime = Date.now();
 let errorCount = 0;
@@ -395,22 +398,32 @@ if (!viberReady) {
     "Менюто ще работи, но реални съобщения няма да се пращат.");
 }
 
-// ── Pre-compressed HTML за светкавично сервиране ─────────────────
-// Gzip и Brotli се подготвят веднъж при старт, не при всяка заявка.
-const HTML_BUF = readFileSync(HTML);
+// ── Pre-compressed assets за светкавично сервиране ──────────────
+const HTML_RAW = readFileSync(HTML, "utf8");
+const HTML_BUF = Buffer.from(HTML_RAW.replace(/__V__/g, BUILD_VERSION));
 const HTML_GZIP = gzipSync(HTML_BUF, { level: 6 });
 const HTML_BROTLI = brotliCompressSync(HTML_BUF);
-log("[init]", `HTML ${(HTML_BUF.length/1024).toFixed(0)}KB → gzip ${(HTML_GZIP.length/1024).toFixed(0)}KB (${((1-HTML_GZIP.length/HTML_BUF.length)*100).toFixed(0)}%) / brotli ${(HTML_BROTLI.length/1024).toFixed(0)}KB (${((1-HTML_BROTLI.length/HTML_BUF.length)*100).toFixed(0)}%)`);
+const CSS_BUF = readFileSync(CSS_FILE);
+const CSS_GZIP = gzipSync(CSS_BUF, { level: 6 });
+const CSS_BROTLI = brotliCompressSync(CSS_BUF);
+const JS_BUF = readFileSync(JS_FILE);
+const JS_GZIP = gzipSync(JS_BUF, { level: 6 });
+const JS_BROTLI = brotliCompressSync(JS_BUF);
+function fmtKB(n) { return (n/1024).toFixed(0) + "KB"; }
+function pct(a, b) { return ((1-a/b)*100).toFixed(0) + "%"; }
+log("[init]", `HTML ${fmtKB(HTML_BUF.length)} → gzip ${fmtKB(HTML_GZIP.length)} (${pct(HTML_GZIP.length,HTML_BUF.length)}) / brotli ${fmtKB(HTML_BROTLI.length)} (${pct(HTML_BROTLI.length,HTML_BUF.length)})`);
+log("[init]", `CSS  ${fmtKB(CSS_BUF.length)} → gzip ${fmtKB(CSS_GZIP.length)} (${pct(CSS_GZIP.length,CSS_BUF.length)}) / brotli ${fmtKB(CSS_BROTLI.length)} (${pct(CSS_BROTLI.length,CSS_BUF.length)})`);
+log("[init]", `JS   ${fmtKB(JS_BUF.length)} → gzip ${fmtKB(JS_GZIP.length)} (${pct(JS_GZIP.length,JS_BUF.length)}) / brotli ${fmtKB(JS_BROTLI.length)} (${pct(JS_BROTLI.length,JS_BUF.length)})`);
 
-function serveCompressed(res, enc) {
-  let buf, cenc;
-  if (enc.includes("br")) { buf = HTML_BROTLI; cenc = "br"; }
-  else if (enc.includes("gzip")) { buf = HTML_GZIP; cenc = "gzip"; }
-  else { buf = HTML_BUF; cenc = ""; }
-  const h = { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" };
+function serveCompressed(res, enc, buf, gz, br, ct) {
+  let out, cenc;
+  if (enc.includes("br")) { out = br; cenc = "br"; }
+  else if (enc.includes("gzip")) { out = gz; cenc = "gzip"; }
+  else { out = buf; cenc = ""; }
+  const h = { "Content-Type": ct, "Cache-Control": "no-cache" };
   if (cenc) h["Content-Encoding"] = cenc;
   res.writeHead(200, h);
-  res.end(buf);
+  res.end(out);
 }
 
 // ── Input Validation ─────────────────────────────────────────────
@@ -856,9 +869,19 @@ th{color:#888;font-weight:600}
     }
   }
 
-  // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
+  // Статични асети — кешират се за 1 година (версионирани са през BUILD_VERSION)
   const ae = req.headers["accept-encoding"] || "";
-  serveCompressed(res, ae);
+  if (req.method === "GET" && (req.url === "/style.css" || req.url.startsWith("/style.css?"))) {
+    serveCompressed(res, ae, CSS_BUF, CSS_GZIP, CSS_BROTLI, "text/css; charset=utf-8");
+    return;
+  }
+  if (req.method === "GET" && (req.url === "/app.js" || req.url.startsWith("/app.js?"))) {
+    serveCompressed(res, ae, JS_BUF, JS_GZIP, JS_BROTLI, "application/javascript; charset=utf-8");
+    return;
+  }
+
+  // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
+  serveCompressed(res, ae, HTML_BUF, HTML_GZIP, HTML_BROTLI, "text/html; charset=utf-8");
 
   } catch (err) {
     errorCount++;
