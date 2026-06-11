@@ -1505,7 +1505,7 @@ function cartPanel(){
 }
 
 function confirmView(){
-  const o=state.orders.find(x=>x.docID===state.activeOrderId)||{docID:"—",name:"",total:0,status:1,lines:[],notifs:[]};
+  const o=state.orders.find(x=>x.docID===state.activeOrderId)||(state.activeOrderId?{docID:state.activeOrderId,name:"",total:0,status:1,lines:[],notifs:[]}:{docID:"—",name:"",total:0,status:1,lines:[],notifs:[]});
   const steps=[{t:"Поръчката е приета",s:"Ресторантът я получи в Янак"},{t:"Приготвя се",s:"Кухнята работи по нея"},{t:"Готова за вземане",s:"Заповядай да я вземеш!"}];
   const stepsHtml=steps.map((st,i)=>{const idx=i+1;let cls=idx<o.status?"done":idx===o.status?"active":"pending";
     return `<div class="step ${cls}"><div class="dot">${idx<o.status?'✓':idx}</div><div class="lbl-s"><b>${st.t}</b><span>${st.s}</span></div></div>`;}).join("");
