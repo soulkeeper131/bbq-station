@@ -1,28 +1,19 @@
-# BBQ Station — лек контейнер за Coolify.
-# Приложението е без външни зависимости (ползва вградения fetch/http на Node),
-# затова не е нужен npm install.
+# BBQ Station — Docker image
 FROM node:22-alpine
-
-ENV NODE_ENV=production
-ENV PORT=3000
-# Постоянно хранилище за качените снимки на продуктите.
-# В Coolify към този път се монтира persistent volume, за да оцеляват снимките при предеплой.
-ENV DATA_DIR=/data
-
 WORKDIR /app
 
-RUN mkdir -p /data/uploads
-
-# Копираме само нужните файлове за изпълнение.
+# Копираме само нужното
 COPY package.json ./
 COPY local-server.mjs ./
-COPY test-viber.mjs ./
 COPY menu-prototip_8.html ./
+COPY public/ ./public/
+COPY data/ ./data/
+
+# Създаваме директории за runtime данни
+RUN mkdir -p /app/data/uploads /app/data/backups
 
 EXPOSE 3000
-
-# Health check (Coolify може да го ползва за readiness).
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+ENV PORT=3000
+ENV NODE_ENV=production
 
 CMD ["node", "local-server.mjs"]
