@@ -289,7 +289,33 @@ function serveCompressed(res, enc) {
   res.end(buf);
 }
 
+// ── Input Validation ─────────────────────────────────────────────
+function san(str, max = 200) {
+  if (typeof str !== "string") return "";
+  return str.trim().slice(0, max).replace(/[\x00-\x1f\x7f]/g, "");
+}
+
+function validateOrder(o) {
+  if (!san(o.name)) return "Името е задължително";
+  if (o.name && o.name.length > 100) return "Името е твърде дълго (макс 100 символа)";
+  if (!Array.isArray(o.lines) || o.lines.length === 0) return "Поръчката няма продукти";
+  if (o.lines.length > 50) return "Твърде много редове (макс 50)";
+  for (const l of o.lines) {
+    if (!l.name || !l.qty || l.qty < 1 || l.qty > 99) return `Невалиден продукт: ${l.name || "?"} x${l.qty}`;
+  }
+  if (o.phone) {
+    const raw = o.phone.replace(/[^\d+]/g, "");
+    if (raw.length < 6 || raw.length > 20) return "Невалиден телефонен номер";
+  }
+  // Саниране
+  o.name = san(o.name, 100);
+  o.phone = san(o.phone, 20);
+  if (o.note) o.note = san(o.note, 500);
+  return null; // ок
+}
+
 const server = createServer(async (req, res) => {
+  try {
   // Security: HSTS + basic headers за всеки отговор
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -339,6 +365,16 @@ const server = createServer(async (req, res) => {
       }
       const id = String(o.docID);
       const isNew = !orders.has(id);
+
+      // ── Input validation за нови поръчки ──
+      if (isNew) {
+        const val = validateOrder(o);
+        if (val) {
+          res.writeHead(422, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: val }));
+        }
+      }
+
       if (!isNew && !requireAdmin(req, res)) return;
       orders.set(id, { ...o, updatedAt: Date.now() });
       saveOrders();
@@ -547,6 +583,14 @@ const server = createServer(async (req, res) => {
   // Всичко друго → връща менюто (gzip/brotli ако браузърът поддържа).
   const ae = req.headers["accept-encoding"] || "";
   serveCompressed(res, ae);
+
+  } catch (err) {
+    log("[server] unhandled error:", err.message || String(err));
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "internal" }));
+    }
+  }
 });
 
 server.listen(PORT, "0.0.0.0", () => {
