@@ -928,6 +928,7 @@ function fileToResizedDataUrl(file,maxDim=800,quality=.82,{packShot=false}={}){
 }
 async function uploadProductImage(productId,file){
   try{
+    if(productId===null||productId===undefined) throw new Error("Редакторът е затворен — отвори продукта отново");
     if(!/^image\//i.test(file.type||"")&&!/\.(jpe?g|png|webp|gif)$/i.test(file.name||""))
       throw new Error("Файлът не е снимка");
     const packShot=packShotForProduct(productId);
@@ -1123,7 +1124,7 @@ function bindAdmin(){
   const pfg=document.getElementById("pf-group");if(pfg)pfg.onchange=e=>{
     if(e.target.value==="1"&&state.adminDraft)state.adminDraft.garnishable=true;
     const gn=document.getElementById("pf-garnish");if(gn&&e.target.value==="1")gn.checked=true;};
-  const up=document.getElementById("imgUp");if(up)up.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)uploadProductImage(state.adminDraft.productId,f);};
+  const up=document.getElementById("imgUp");if(up)up.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f){const pid=state.adminDraft?.productId;uploadProductImage(pid,f);}};
   const irm=document.getElementById("imgRm");if(irm)irm.onclick=()=>removeProductImage(state.adminDraft.productId);
   const addg=document.getElementById("addg");if(addg)addg.onclick=draftAddGroup;
   document.querySelectorAll("[data-delg]").forEach(b=>b.onclick=()=>draftRemoveGroup(+b.dataset.delg));
