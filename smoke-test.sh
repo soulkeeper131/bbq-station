@@ -7,8 +7,11 @@ set -euo pipefail
 BASE="${1:-http://localhost:3000}"
 PASS=0; FAIL=0
 
+# Всички curl заявки да следват redirect-и (HTTPS production)
+CURL="curl -sL"
+
 check(){ local label="$1" url="$2" expected="$3"
-  local code; code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+  local code; code=$($CURL -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
   if [ "$code" = "$expected" ]; then
     echo "  ✅ $label ($code)"; PASS=$((PASS+1))
   else
@@ -16,7 +19,7 @@ check(){ local label="$1" url="$2" expected="$3"
   fi
 }
 check_body(){ local label="$1" url="$2" pattern="$3"
-  local body; body=$(curl -s "$url" 2>/dev/null || echo "")
+  local body; body=$($CURL "$url" 2>/dev/null || echo "")
   if echo "$body" | grep -q "$pattern"; then
     echo "  ✅ $label"; PASS=$((PASS+1))
   else
@@ -41,6 +44,7 @@ check     "Product images"      "$BASE/api/product-images"    200
 
 echo ""
 echo "🔒 Admin-protected (without key → 401):"
+sleep 1  # изчакване след rate limit теста
 check     "Admin dashboard"     "$BASE/admin"                 401
 check     "Orders list"         "$BASE/api/orders"            401
 check     "Admin backup"        "$BASE/api/admin/backups"     401
@@ -49,7 +53,7 @@ echo ""
 echo "🛡️ Rate limiting (6 rapid POSTs → 429):"
 count=0
 for i in 1 2 3 4 5 6; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/api/orders" -H "Content-Type: application/json" -d '{"docID":"smoke"}' 2>/dev/null)
+  code=$($CURL -o /dev/null -w "%{http_code}" -X POST "$BASE/api/orders" -H "Content-Type: application/json" -d '{"docID":"smoke"}' 2>/dev/null)
   [ "$code" = "429" ] && count=$((count+1))
 done
 if [ "$count" -ge 1 ]; then echo "  ✅ Rate limit triggered (429×$count)"; PASS=$((PASS+1))
