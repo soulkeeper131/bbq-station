@@ -139,7 +139,7 @@ function persist(){store.write({orders:state.orders.slice(0,10),activeOrderId:st
 
 // Viber през сървърния proxy (Infobip). Първото известие при нова поръчка се праща и от сървъра.
 const VIBER={ endpoint:"/api/send-viber" };
-function adminHeaders(extra={}){const h={...extra};if(state.adminKey)h["X-Admin-Key"]=state.adminKey;return h;}
+function adminHeaders(extra={}){const h={...extra};const k=state.adminKey||(function(){try{return sessionStorage.getItem("bbq_admin_key")||""}catch{return""}})();if(k)h["X-Admin-Key"]=k;return h;}
 function loadAdminKey(){try{state.adminKey=sessionStorage.getItem("bbq_admin_key")||"";}catch(e){state.adminKey="";}}
 function saveAdminKey(k){state.adminKey=k||"";try{if(k)sessionStorage.setItem("bbq_admin_key",k);else sessionStorage.removeItem("bbq_admin_key");}catch(e){}}
 function normalizePhone(p){let d=(p||"").replace(/[^\d]/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="359"+d.slice(1);return d;}
